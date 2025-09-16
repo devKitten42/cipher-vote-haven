@@ -76,8 +76,8 @@ Cipher Vote Haven 是一个基于完全同态加密（FHE）技术的安全治�
 
 ### 网络配置
 - **链 ID**: 11155111 (Sepolia 测试网)
-- **RPC URL**: https://sepolia.infura.io/v3/b18fb7e6ca7045ac83c41157ab93f990
-- **WalletConnect 项目 ID**: 2ec9743d0d0cd7fb94dee1a7e6d33475
+- **RPC URL**: 通过环境变量配置
+- **WalletConnect 项目 ID**: 通过环境变量配置
 
 ### 部署信息
 - **GitHub 仓库**: https://github.com/devKitten42/cipher-vote-haven
