@@ -5,8 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Lock, CheckCircle, Vote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, FHEEncryption } from '@/lib/contract';
+import { useContract } from '@/hooks/useContract';
 
 interface VotingModalProps {
   isOpen: boolean;
@@ -19,13 +18,9 @@ const VotingModal = ({ isOpen, onClose, proposalId, proposalTitle }: VotingModal
   const [selectedVote, setSelectedVote] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
-  const { isConnected } = useAccount();
   
   // Contract interaction hooks
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const { castVote, isPending, isConfirming, isConfirmed, error, isConnected } = useContract();
 
   const handleSubmit = async () => {
     if (!selectedVote || !isConnected) return;
@@ -34,24 +29,8 @@ const VotingModal = ({ isOpen, onClose, proposalId, proposalTitle }: VotingModal
       // Convert vote choice to number (1 = Yes, 2 = No, 3 = Abstain)
       const voteChoice = selectedVote === 'yes' ? 1 : selectedVote === 'no' ? 2 : 3;
       
-      // Encrypt the vote using FHE
-      const { encrypted, proof } = await FHEEncryption.encryptVote(voteChoice);
-      
-      // Convert strings to bytes for contract call
-      const encryptedBytes = new TextEncoder().encode(encrypted);
-      const proofBytes = new TextEncoder().encode(proof);
-      
-      // Call the smart contract with encrypted vote
-      await writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'castVote',
-        args: [
-          BigInt(proposalId), 
-          encryptedBytes, 
-          proofBytes
-        ],
-      });
+      // Cast vote with FHE encryption
+      await castVote(Number(proposalId), voteChoice);
       
       setSubmitted(true);
       

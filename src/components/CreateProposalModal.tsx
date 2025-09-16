@@ -6,8 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Plus, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract';
+import { useContract } from '@/hooks/useContract';
 
 interface CreateProposalModalProps {
   isOpen: boolean;
@@ -21,33 +20,16 @@ const CreateProposalModal = ({ isOpen, onClose }: CreateProposalModalProps) => {
   const [quorumThreshold, setQuorumThreshold] = useState(100);
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
-  const { isConnected } = useAccount();
   
   // Contract interaction hooks
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const { createProposal, isPending, isConfirming, isConfirmed, error, isConnected } = useContract();
 
   const handleSubmit = async () => {
     if (!title || !description || !isConnected) return;
     
     try {
-      // Convert duration from days to seconds
-      const durationInSeconds = duration * 24 * 60 * 60;
-      
-      // Call the smart contract to create proposal
-      await writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'createProposal',
-        args: [
-          title,
-          description,
-          BigInt(durationInSeconds),
-          BigInt(quorumThreshold)
-        ],
-      });
+      // Create proposal using contract hook
+      await createProposal(title, description, duration, quorumThreshold);
       
       setSubmitted(true);
       
