@@ -1,5 +1,5 @@
 // Contract configuration and ABI
-export const CONTRACT_ADDRESS = "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8bC"; // Placeholder address
+export const CONTRACT_ADDRESS = "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8bC"; // Placeholder address - replace with deployed contract address
 
 export const CONTRACT_ABI = [
   {
