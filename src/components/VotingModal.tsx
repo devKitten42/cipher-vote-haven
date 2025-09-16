@@ -3,10 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, CheckCircle } from "lucide-react";
+import { Lock, CheckCircle, Vote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, FHEEncryption } from '@/lib/contract';
 
 interface VotingModalProps {
   isOpen: boolean;
@@ -34,24 +34,30 @@ const VotingModal = ({ isOpen, onClose, proposalId, proposalTitle }: VotingModal
       // Convert vote choice to number (1 = Yes, 2 = No, 3 = Abstain)
       const voteChoice = selectedVote === 'yes' ? 1 : selectedVote === 'no' ? 2 : 3;
       
-      // Note: In a real implementation, you would need to:
-      // 1. Encrypt the vote choice using FHE
-      // 2. Generate a proof for the encrypted value
-      // 3. Call the contract with the encrypted value and proof
+      // Encrypt the vote using FHE
+      const { encrypted, proof } = await FHEEncryption.encryptVote(voteChoice);
       
-      // For now, we'll simulate the contract call
+      // Convert strings to bytes for contract call
+      const encryptedBytes = new TextEncoder().encode(encrypted);
+      const proofBytes = new TextEncoder().encode(proof);
+      
+      // Call the smart contract with encrypted vote
       await writeContract({
-        address: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8bC', // Contract address
-        abi: [], // Contract ABI would go here
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
         functionName: 'castVote',
-        args: [BigInt(proposalId), voteChoice, '0x'], // proposalId, encryptedVote, proof
+        args: [
+          BigInt(proposalId), 
+          encryptedBytes, 
+          proofBytes
+        ],
       });
       
       setSubmitted(true);
       
       toast({
         title: "Vote Encrypted & Submitted",
-        description: "Your vote has been encrypted and submitted privately to the blockchain.",
+        description: "Your vote has been encrypted using FHE and submitted privately to the blockchain.",
       });
 
       setTimeout(() => {
@@ -60,6 +66,7 @@ const VotingModal = ({ isOpen, onClose, proposalId, proposalTitle }: VotingModal
         setSelectedVote("");
       }, 2000);
     } catch (err) {
+      console.error('Vote submission error:', err);
       toast({
         title: "Vote Submission Failed",
         description: "There was an error submitting your vote. Please try again.",
@@ -91,7 +98,7 @@ const VotingModal = ({ isOpen, onClose, proposalId, proposalTitle }: VotingModal
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <Shield className="h-5 w-5 text-primary" />
+            <Vote className="h-5 w-5 text-primary" />
             <span>Cast Private Vote</span>
           </DialogTitle>
         </DialogHeader>

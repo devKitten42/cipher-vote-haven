@@ -1,6 +1,6 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "@/components/ui/button";
-import { Shield, Users } from "lucide-react";
+import { Vote, Users } from "lucide-react";
 import { useAccount } from 'wagmi';
 
 const GovernanceHeader = () => {
@@ -12,7 +12,7 @@ const GovernanceHeader = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Shield className="h-6 w-6 text-primary" />
+              <Vote className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h1 className="text-xl font-bold">Cipher Vote Haven</h1>

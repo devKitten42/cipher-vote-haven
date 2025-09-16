@@ -2,13 +2,16 @@ import { useState } from "react";
 import GovernanceHeader from "@/components/GovernanceHeader";
 import ProposalCard from "@/components/ProposalCard";
 import ResultsChart from "@/components/ResultsChart";
+import CreateProposalModal from "@/components/CreateProposalModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Shield, Users, Vote } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Lock, Users, Vote, Plus } from "lucide-react";
 import heroImage from "@/assets/governance-hero.jpg";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("proposals");
+  const [isCreateProposalOpen, setIsCreateProposalOpen] = useState(false);
 
   // Mock data
   const proposals = [
@@ -51,7 +54,7 @@ const Index = () => {
   const stats = [
     { label: "Total Proposals", value: "47", icon: Vote, color: "text-primary" },
     { label: "Active Members", value: "1,247", icon: Users, color: "text-governance-success" },
-    { label: "Encrypted Votes", value: "15,392", icon: Shield, color: "text-governance-secondary" },
+    { label: "Encrypted Votes", value: "15,392", icon: Lock, color: "text-governance-secondary" },
     { label: "Participation Rate", value: "73.5%", icon: TrendingUp, color: "text-governance-warning" },
   ];
 
@@ -108,6 +111,16 @@ const Index = () => {
             </TabsList>
 
             <TabsContent value="proposals" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Active Proposals</h2>
+                <Button 
+                  onClick={() => setIsCreateProposalOpen(true)}
+                  className="bg-gradient-primary hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Proposal
+                </Button>
+              </div>
               <div className="grid gap-6">
                 {proposals
                   .filter(p => p.status === "active")
@@ -142,6 +155,11 @@ const Index = () => {
           </Tabs>
         </div>
       </section>
+      
+      <CreateProposalModal 
+        isOpen={isCreateProposalOpen}
+        onClose={() => setIsCreateProposalOpen(false)}
+      />
     </div>
   );
 };
