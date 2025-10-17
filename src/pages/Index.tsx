@@ -380,7 +380,7 @@ const Index = () => {
                       type="text"
                       value={newProposal.title}
                       onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
-                      className="w-full p-2 border rounded-md"
+                      className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
                       placeholder="Enter proposal title"
                     />
                   </div>
@@ -390,7 +390,7 @@ const Index = () => {
                       type="number"
                       value={newProposal.duration}
                       onChange={(e) => setNewProposal({...newProposal, duration: parseInt(e.target.value)})}
-                      className="w-full p-2 border rounded-md"
+                      className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
                       min="1"
                       max="30"
                     />
@@ -401,7 +401,7 @@ const Index = () => {
                   <textarea
                     value={newProposal.description}
                     onChange={(e) => setNewProposal({...newProposal, description: e.target.value})}
-                    className="w-full p-2 border rounded-md h-24"
+                    className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent h-24"
                     placeholder="Enter proposal description"
                   />
                 </div>
@@ -411,7 +411,7 @@ const Index = () => {
                     type="number"
                     value={newProposal.quorumThreshold}
                     onChange={(e) => setNewProposal({...newProposal, quorumThreshold: parseInt(e.target.value)})}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
                     min="1"
                     placeholder="Minimum votes required"
                   />
