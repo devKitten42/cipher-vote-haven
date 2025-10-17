@@ -61,6 +61,36 @@ async function main() {
       description: "Modernize treasury allocation strategy to include DeFi yield farming and risk diversification across multiple protocols.",
       duration: 5 * 24 * 60 * 60, // 5 days in seconds
       quorumThreshold: 200
+    },
+    {
+      title: "Community Staking Rewards Program",
+      description: "Launch a new staking rewards program with 15% APY for community members who stake their tokens for 6+ months.",
+      duration: 14 * 24 * 60 * 60, // 14 days in seconds
+      quorumThreshold: 300
+    },
+    {
+      title: "Partnership with Major DeFi Protocol",
+      description: "Form strategic partnership with leading DeFi protocol to integrate cross-chain functionality and increase TVL.",
+      duration: 21 * 24 * 60 * 60, // 21 days in seconds
+      quorumThreshold: 500
+    },
+    {
+      title: "Technical Upgrade: Layer 2 Integration",
+      description: "Implement Layer 2 scaling solution to reduce transaction costs and improve user experience for all governance operations.",
+      duration: 30 * 24 * 60 * 60, // 30 days in seconds
+      quorumThreshold: 750
+    },
+    {
+      title: "Environmental Sustainability Initiative",
+      description: "Allocate 2% of treasury funds to carbon offset programs and renewable energy investments to support environmental sustainability.",
+      duration: 12 * 24 * 60 * 60, // 12 days in seconds
+      quorumThreshold: 250
+    },
+    {
+      title: "Emergency Response Fund",
+      description: "Create emergency response fund with 1M tokens to handle unexpected market conditions and provide community support during crises.",
+      duration: 3 * 24 * 60 * 60, // 3 days in seconds
+      quorumThreshold: 1000
     }
   ];
   
