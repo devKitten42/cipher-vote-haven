@@ -50,7 +50,11 @@ const Index = () => {
     title: "",
     description: "",
     duration: 7,
-    quorumThreshold: 100
+    quorumThreshold: 100,
+    category: "governance",
+    priority: "medium",
+    tags: "",
+    votingOptions: "yes_no_abstain"
   });
   const [activeTab, setActiveTab] = useState("voting");
 
@@ -163,7 +167,17 @@ const Index = () => {
         newProposal.quorumThreshold
       );
       
-      setNewProposal({ title: "", description: "", duration: 7, quorumThreshold: 100 });
+      // Reset form with all fields
+      setNewProposal({ 
+        title: "", 
+        description: "", 
+        duration: 7, 
+        quorumThreshold: 100,
+        category: "governance",
+        priority: "medium",
+        tags: "",
+        votingOptions: "yes_no_abstain"
+      });
       alert("Proposal created successfully!");
     } catch (error) {
       console.error("Failed to create proposal:", error);
@@ -372,49 +386,117 @@ const Index = () => {
                   Create New Proposal
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Title *</label>
+                      <input
+                        type="text"
+                        value={newProposal.title}
+                        onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
+                        className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
+                        placeholder="Enter proposal title"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Category</label>
+                      <select
+                        value={newProposal.category}
+                        onChange={(e) => setNewProposal({...newProposal, category: e.target.value})}
+                        className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
+                      >
+                        <option value="governance">Governance</option>
+                        <option value="treasury">Treasury</option>
+                        <option value="technical">Technical</option>
+                        <option value="community">Community</option>
+                        <option value="partnership">Partnership</option>
+                      </select>
+                    </div>
+                  </div>
                   <div>
-                    <label className="text-sm font-medium">Title</label>
+                    <label className="text-sm font-medium">Description *</label>
+                    <textarea
+                      value={newProposal.description}
+                      onChange={(e) => setNewProposal({...newProposal, description: e.target.value})}
+                      className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent h-24"
+                      placeholder="Enter detailed proposal description"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Voting Configuration */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold">Voting Configuration</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Duration (days)</label>
+                      <input
+                        type="number"
+                        value={newProposal.duration}
+                        onChange={(e) => setNewProposal({...newProposal, duration: parseInt(e.target.value)})}
+                        className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
+                        min="1"
+                        max="30"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Quorum Threshold</label>
+                      <input
+                        type="number"
+                        value={newProposal.quorumThreshold}
+                        onChange={(e) => setNewProposal({...newProposal, quorumThreshold: parseInt(e.target.value)})}
+                        className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
+                        min="1"
+                        placeholder="Minimum votes required"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Priority</label>
+                      <select
+                        value={newProposal.priority}
+                        onChange={(e) => setNewProposal({...newProposal, priority: e.target.value})}
+                        className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Voting Options</label>
+                    <select
+                      value={newProposal.votingOptions}
+                      onChange={(e) => setNewProposal({...newProposal, votingOptions: e.target.value})}
+                      className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
+                    >
+                      <option value="yes_no_abstain">Yes / No / Abstain</option>
+                      <option value="yes_no">Yes / No</option>
+                      <option value="multiple_choice">Multiple Choice</option>
+                      <option value="ranking">Ranking</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Additional Options */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold">Additional Options</h4>
+                  <div>
+                    <label className="text-sm font-medium">Tags (comma-separated)</label>
                     <input
                       type="text"
-                      value={newProposal.title}
-                      onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
+                      value={newProposal.tags}
+                      onChange={(e) => setNewProposal({...newProposal, tags: e.target.value})}
                       className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
-                      placeholder="Enter proposal title"
+                      placeholder="e.g., funding, development, community"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Duration (days)</label>
-                    <input
-                      type="number"
-                      value={newProposal.duration}
-                      onChange={(e) => setNewProposal({...newProposal, duration: parseInt(e.target.value)})}
-                      className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
-                      min="1"
-                      max="30"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <textarea
-                    value={newProposal.description}
-                    onChange={(e) => setNewProposal({...newProposal, description: e.target.value})}
-                    className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent h-24"
-                    placeholder="Enter proposal description"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Quorum Threshold</label>
-                  <input
-                    type="number"
-                    value={newProposal.quorumThreshold}
-                    onChange={(e) => setNewProposal({...newProposal, quorumThreshold: parseInt(e.target.value)})}
-                    className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
-                    min="1"
-                    placeholder="Minimum votes required"
-                  />
                 </div>
                 <div className="flex justify-end">
                   <Button 
