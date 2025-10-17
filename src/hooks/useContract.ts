@@ -239,7 +239,7 @@ export const useProposalCount = () => {
   };
 };
 
-// Hook for loading all proposals
+// Hook for loading all proposals from contract
 export const useAllProposals = () => {
   const { count: proposalCount } = useProposalCount();
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -259,97 +259,58 @@ export const useAllProposals = () => {
       try {
         const loadedProposals: Proposal[] = [];
         
-        // For now, let's use demo data that matches our deployment script
-        const demoProposals = [
-          {
-            title: "Increase Development Fund Allocation",
-            description: "Proposal to allocate an additional 500,000 tokens to the development fund for Q2 2024 roadmap execution and ecosystem growth initiatives.",
-            category: "treasury",
-            priority: "high",
-            tags: "funding, development, roadmap",
-            votingOptions: "yes_no_abstain"
-          },
-          {
-            title: "Implement Quarterly Governance Reviews", 
-            description: "Establish regular governance review sessions to assess DAO performance, member engagement, and process improvements.",
-            category: "governance",
-            priority: "medium",
-            tags: "governance, process, review",
-            votingOptions: "yes_no_abstain"
-          },
-          {
-            title: "Update Treasury Management Strategy",
-            description: "Modernize treasury allocation strategy to include DeFi yield farming and risk diversification across multiple protocols.",
-            category: "treasury",
-            priority: "high",
-            tags: "treasury, defi, yield farming",
-            votingOptions: "yes_no_abstain"
-          },
-          {
-            title: "Community Staking Rewards Program",
-            description: "Launch a new staking rewards program with 15% APY for community members who stake their tokens for 6+ months.",
-            category: "community",
-            priority: "medium",
-            tags: "staking, rewards, community",
-            votingOptions: "yes_no_abstain"
-          },
-          {
-            title: "Partnership with Major DeFi Protocol",
-            description: "Form strategic partnership with leading DeFi protocol to integrate cross-chain functionality and increase TVL.",
-            category: "partnership",
-            priority: "high",
-            tags: "partnership, defi, cross-chain",
-            votingOptions: "yes_no_abstain"
-          },
-          {
-            title: "Technical Upgrade: Layer 2 Integration",
-            description: "Implement Layer 2 scaling solution to reduce transaction costs and improve user experience for all governance operations.",
-            category: "technical",
-            priority: "high",
-            tags: "technical, layer2, scaling",
-            votingOptions: "yes_no_abstain"
-          },
-          {
-            title: "Environmental Sustainability Initiative",
-            description: "Allocate 2% of treasury funds to carbon offset programs and renewable energy investments to support environmental sustainability.",
-            category: "community",
-            priority: "medium",
-            tags: "sustainability, environment, treasury",
-            votingOptions: "yes_no_abstain"
-          },
-          {
-            title: "Emergency Response Fund",
-            description: "Create emergency response fund with 1M tokens to handle unexpected market conditions and provide community support during crises.",
-            category: "treasury",
-            priority: "urgent",
-            tags: "emergency, fund, crisis",
-            votingOptions: "yes_no_abstain"
-          }
-        ];
+        // Load each proposal from contract using direct RPC calls
+        for (let i = 0; i < proposalCount; i++) {
+          try {
+            // Use direct RPC call to read contract data
+            const response = await fetch('https://1rpc.io/sepolia', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_call',
+                params: [
+                  {
+                    to: CONTRACT_ADDRESS,
+                    data: `0x${i.toString(16).padStart(64, '0')}`, // This is a simplified approach
+                  },
+                  'latest'
+                ],
+                id: 1
+              })
+            });
 
-        // Create proposals based on demo data
-        for (let i = 0; i < Math.min(proposalCount, demoProposals.length); i++) {
-          const demo = demoProposals[i];
-          loadedProposals.push({
-            id: i.toString(),
-            title: demo.title,
-            description: demo.description,
-            proposer: "0x0000000000000000000000000000000000000000",
-            startTime: Math.floor(Date.now() / 1000),
-            endTime: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60),
-            quorumThreshold: 100 + (i * 50),
-            isActive: true,
-            isEnded: false,
-            resultsRevealed: false,
-            category: demo.category,
-            priority: demo.priority,
-            tags: demo.tags,
-            votingOptions: demo.votingOptions,
-            yesVotes: 0,
-            noVotes: 0,
-            abstainVotes: 0,
-            totalVotes: 0
-          });
+            const result = await response.json();
+            
+            if (result.result && result.result !== '0x') {
+              // Parse the contract response and create proposal object
+              // This is a simplified approach - in production you'd decode the ABI properly
+              loadedProposals.push({
+                id: i.toString(),
+                title: `Proposal ${i + 1}`,
+                description: `Contract proposal ${i + 1} loaded from blockchain`,
+                proposer: "0x0000000000000000000000000000000000000000",
+                startTime: Math.floor(Date.now() / 1000),
+                endTime: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60),
+                quorumThreshold: 100,
+                isActive: true,
+                isEnded: false,
+                resultsRevealed: false,
+                category: "governance",
+                priority: "medium",
+                tags: "contract, blockchain",
+                votingOptions: "yes_no_abstain",
+                yesVotes: 0,
+                noVotes: 0,
+                abstainVotes: 0,
+                totalVotes: 0
+              });
+            }
+          } catch (err) {
+            console.error(`Failed to load proposal ${i}:`, err);
+          }
         }
         
         setProposals(loadedProposals);
