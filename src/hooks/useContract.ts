@@ -226,14 +226,24 @@ export const useHasVoted = (proposalId: number) => {
 
 // Hook for getting proposal count
 export const useProposalCount = () => {
+  console.log('🔍 useProposalCount: Fetching proposal count from contract...');
+  console.log('📋 Contract address:', CONTRACT_ADDRESS);
+  
   const { data, isLoading, error } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getProposalCount',
   });
 
+  console.log('📊 Proposal count data:', data);
+  console.log('⏳ Loading state:', isLoading);
+  console.log('❌ Error state:', error);
+
+  const count = data ? Number(data) : 0;
+  console.log('🔢 Final proposal count:', count);
+
   return {
-    count: data ? Number(data) : 0,
+    count,
     isLoading,
     error,
   };
@@ -248,11 +258,16 @@ export const useAllProposals = () => {
 
   useEffect(() => {
     const loadAllProposals = async () => {
+      console.log('🔍 useAllProposals: Starting to load proposals...');
+      console.log('📊 Proposal count from contract:', proposalCount);
+      
       if (!proposalCount || proposalCount === 0) {
+        console.log('⚠️ No proposals found, setting empty array');
         setProposals([]);
         return;
       }
 
+      console.log('🔄 Starting to load proposals from contract...');
       setIsLoading(true);
       setError(null);
 
@@ -261,9 +276,13 @@ export const useAllProposals = () => {
         
         // Load each proposal from contract using direct RPC calls
         for (let i = 0; i < proposalCount; i++) {
+          console.log(`🔍 Loading proposal ${i} from contract...`);
           try {
             // Use direct RPC call to read contract data
             const rpcUrl = import.meta.env.VITE_NEXT_PUBLIC_RPC_URL || 'https://1rpc.io/sepolia';
+            console.log('🌐 Using RPC URL:', rpcUrl);
+            console.log('📋 Contract address:', CONTRACT_ADDRESS);
+            
             const response = await fetch(rpcUrl, {
               method: 'POST',
               headers: {
@@ -283,9 +302,12 @@ export const useAllProposals = () => {
               })
             });
 
+            console.log(`📡 RPC response for proposal ${i}:`, response.status);
             const result = await response.json();
+            console.log(`📄 RPC result for proposal ${i}:`, result);
             
             if (result.result && result.result !== '0x') {
+              console.log(`✅ Proposal ${i} has data, creating proposal object`);
               // Parse the contract response and create proposal object
               // This is a simplified approach - in production you'd decode the ABI properly
               loadedProposals.push({
@@ -308,16 +330,22 @@ export const useAllProposals = () => {
                 abstainVotes: 0,
                 totalVotes: 0
               });
+            } else {
+              console.log(`⚠️ Proposal ${i} has no data or empty result`);
             }
           } catch (err) {
-            console.error(`Failed to load proposal ${i}:`, err);
+            console.error(`❌ Failed to load proposal ${i}:`, err);
           }
         }
         
+        console.log(`📊 Total loaded proposals: ${loadedProposals.length}`);
+        console.log('📋 Final proposals array:', loadedProposals);
         setProposals(loadedProposals);
       } catch (err) {
+        console.error('❌ Error in loadAllProposals:', err);
         setError(err as Error);
       } finally {
+        console.log('🏁 Finished loading proposals');
         setIsLoading(false);
       }
     };
