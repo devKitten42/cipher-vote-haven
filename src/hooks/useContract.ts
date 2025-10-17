@@ -172,6 +172,7 @@ export const useProposal = (proposalId: number) => {
     startTime: Number(startTime),
     endTime: Number(endTime),
     quorumThreshold: Number(quorumThreshold),
+    resultsRevealed,
   };
 
   return {
@@ -212,6 +213,86 @@ export const useProposalCount = () => {
 
   return {
     count: data ? Number(data) : 0,
+    isLoading,
+    error,
+  };
+};
+
+// Hook for loading all proposals
+export const useAllProposals = () => {
+  const { count: proposalCount } = useProposalCount();
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const loadAllProposals = async () => {
+      if (!proposalCount || proposalCount === 0) {
+        setProposals([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const loadedProposals: Proposal[] = [];
+        
+        // Load each proposal individually using direct contract calls
+        for (let i = 0; i < proposalCount; i++) {
+          try {
+            // Use direct contract read
+            const { readContract } = await import('wagmi/actions');
+            const { getPublicClient } = await import('wagmi');
+            const publicClient = getPublicClient();
+            
+            if (!publicClient) continue;
+            
+            const proposalData = await publicClient.readContract({
+              address: CONTRACT_ADDRESS as `0x${string}`,
+              abi: CONTRACT_ABI,
+              functionName: 'getProposalInfo',
+              args: [BigInt(i)],
+            });
+
+            if (proposalData) {
+              const [title, description, isActive, isEnded, proposer, startTime, endTime, quorumThreshold, resultsRevealed] = proposalData as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean];
+              
+              loadedProposals.push({
+                id: i.toString(),
+                title,
+                description,
+                proposer,
+                startTime: Number(startTime),
+                endTime: Number(endTime),
+                quorumThreshold: Number(quorumThreshold),
+                isActive: Boolean(isActive),
+                isEnded: Boolean(isEnded),
+                resultsRevealed: Boolean(resultsRevealed),
+                yesVotes: 0,
+                noVotes: 0,
+                abstainVotes: 0,
+                totalVotes: 0
+              });
+            }
+          } catch (err) {
+            console.error(`Failed to load proposal ${i}:`, err);
+          }
+        }
+        
+        setProposals(loadedProposals);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAllProposals();
+  }, [proposalCount]);
+
+  return {
+    proposals,
     isLoading,
     error,
   };

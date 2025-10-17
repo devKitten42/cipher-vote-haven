@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAccount, useConnectModal } from "wagmi";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useContract, useRevealResults, useDecryptVoteCounts, useProposalCount, useProposal } from "@/hooks/useContract";
+import { useContract, useRevealResults, useDecryptVoteCounts, useProposalCount, useProposal, useAllProposals } from "@/hooks/useContract";
 import { useZamaInstance } from "@/hooks/useZamaInstance";
 import { useEthersSigner } from "@/hooks/useEthersSigner";
 import { decryptVoteData } from "@/lib/fhe-utils";
+import { CONTRACT_ABI } from "@/lib/contract";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,8 +40,8 @@ const Index = () => {
   const { revealResults } = useRevealResults();
   const { decryptVoteCounts } = useDecryptVoteCounts(0);
   const { count: proposalCount } = useProposalCount();
+  const { proposals, isLoading: isLoadingProposals, error: proposalsError } = useAllProposals();
 
-  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [voteChoice, setVoteChoice] = useState<number>(0);
   const [isVoting, setIsVoting] = useState(false);
@@ -57,48 +58,6 @@ const Index = () => {
     votingOptions: "yes_no_abstain"
   });
   const [activeTab, setActiveTab] = useState("voting");
-
-  // Load proposals from contract
-  useEffect(() => {
-    const loadProposals = async () => {
-      if (!proposalCount || proposalCount === 0) return;
-      
-      try {
-        const loadedProposals: Proposal[] = [];
-        
-        // Load each proposal from contract
-        for (let i = 0; i < proposalCount; i++) {
-          try {
-            const proposalData = await useProposal(i);
-            if (proposalData && proposalData.proposal) {
-              const [title, description, proposer, startTime, endTime, quorumThreshold, isActive, isEnded, resultsRevealed] = proposalData.proposal;
-              
-              loadedProposals.push({
-                id: i.toString(),
-                title,
-                description,
-                proposer,
-                startTime: Number(startTime),
-                endTime: Number(endTime),
-                quorumThreshold: Number(quorumThreshold),
-                isActive: Boolean(isActive),
-                isEnded: Boolean(isEnded),
-                resultsRevealed: Boolean(resultsRevealed)
-              });
-            }
-          } catch (error) {
-            console.error(`Failed to load proposal ${i}:`, error);
-          }
-        }
-        
-        setProposals(loadedProposals);
-      } catch (error) {
-        console.error("Failed to load proposals:", error);
-      }
-    };
-
-    loadProposals();
-  }, [proposalCount]);
 
   const handleVote = async (proposalId: number, choice: number) => {
     if (!isConnected || !address) {
@@ -249,7 +208,27 @@ const Index = () => {
             </div>
 
             {/* Proposals List */}
-            {proposals.length === 0 ? (
+            {isLoadingProposals ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <h3 className="text-lg font-semibold mb-2">Loading Proposals...</h3>
+                  <p className="text-muted-foreground">
+                    Fetching proposals from the contract.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : proposalsError ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <XCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+                  <h3 className="text-lg font-semibold mb-2">Error Loading Proposals</h3>
+                  <p className="text-muted-foreground">
+                    {proposalsError.message}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : proposals.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <Vote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
