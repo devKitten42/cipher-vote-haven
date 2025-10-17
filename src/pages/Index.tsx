@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
-import { useContract, useRevealResults, useDecryptVoteCounts } from "@/hooks/useContract";
+import { useAccount, useConnectModal } from "wagmi";
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useContract, useRevealResults, useDecryptVoteCounts, useProposalCount, useProposal } from "@/hooks/useContract";
 import { useZamaInstance } from "@/hooks/useZamaInstance";
 import { useEthersSigner } from "@/hooks/useEthersSigner";
 import { decryptVoteData } from "@/lib/fhe-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Vote, Eye, Shield, CheckCircle, XCircle, Minus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Lock, Vote, Eye, Shield, CheckCircle, XCircle, Minus, Plus, Users } from "lucide-react";
 import { CONTRACT_ADDRESS } from "@/config/contracts";
 
 interface Proposal {
@@ -36,6 +38,7 @@ const Index = () => {
   
   const { revealResults } = useRevealResults();
   const { decryptVoteCounts } = useDecryptVoteCounts(0);
+  const { count: proposalCount } = useProposalCount();
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
@@ -49,47 +52,49 @@ const Index = () => {
     duration: 7,
     quorumThreshold: 100
   });
+  const [activeTab, setActiveTab] = useState("voting");
 
   // Load proposals from contract
   useEffect(() => {
     const loadProposals = async () => {
+      if (!proposalCount || proposalCount === 0) return;
+      
       try {
-        // This would be replaced with actual contract calls
-        // For now, using mock data
-        const mockProposals: Proposal[] = [
-          {
-            id: "1",
-            title: "Increase Development Fund Allocation",
-            description: "Proposal to allocate an additional 500,000 tokens to the development fund for Q2 2024 roadmap execution.",
-            isActive: true,
-            isEnded: false,
-            proposer: "0x1234...5678",
-            startTime: Date.now() - 86400000, // 1 day ago
-            endTime: Date.now() + 172800000, // 2 days from now
-            quorumThreshold: 100,
-            resultsRevealed: false
-          },
-          {
-            id: "2",
-            title: "Implement Quarterly Governance Reviews",
-            description: "Establish regular governance review sessions to assess DAO performance and member engagement.",
-            isActive: true,
-            isEnded: false,
-            proposer: "0x2345...6789",
-            startTime: Date.now() - 259200000, // 3 days ago
-            endTime: Date.now() + 432000000, // 5 days from now
-            quorumThreshold: 150,
-            resultsRevealed: false
+        const loadedProposals: Proposal[] = [];
+        
+        // Load each proposal from contract
+        for (let i = 0; i < proposalCount; i++) {
+          try {
+            const proposalData = await useProposal(i);
+            if (proposalData && proposalData.proposal) {
+              const [title, description, proposer, startTime, endTime, quorumThreshold, isActive, isEnded, resultsRevealed] = proposalData.proposal;
+              
+              loadedProposals.push({
+                id: i.toString(),
+                title,
+                description,
+                proposer,
+                startTime: Number(startTime),
+                endTime: Number(endTime),
+                quorumThreshold: Number(quorumThreshold),
+                isActive: Boolean(isActive),
+                isEnded: Boolean(isEnded),
+                resultsRevealed: Boolean(resultsRevealed)
+              });
+            }
+          } catch (error) {
+            console.error(`Failed to load proposal ${i}:`, error);
           }
-        ];
-        setProposals(mockProposals);
+        }
+        
+        setProposals(loadedProposals);
       } catch (error) {
         console.error("Failed to load proposals:", error);
       }
     };
 
     loadProposals();
-  }, []);
+  }, [proposalCount]);
 
   const handleVote = async (proposalId: number, choice: number) => {
     if (!isConnected || !address) {
@@ -187,6 +192,7 @@ const Index = () => {
                   Wallet Not Connected
                 </Badge>
               )}
+              <ConnectButton />
             </div>
           </div>
         </div>
@@ -205,63 +211,43 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Create Proposal Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Vote className="h-5 w-5 mr-2" />
-              Create New Proposal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Title</label>
-                <input
-                  type="text"
-                  value={newProposal.title}
-                  onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
-                  className="w-full p-2 border rounded-md"
-                  placeholder="Enter proposal title"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Duration (days)</label>
-                <input
-                  type="number"
-                  value={newProposal.duration}
-                  onChange={(e) => setNewProposal({...newProposal, duration: parseInt(e.target.value)})}
-                  className="w-full p-2 border rounded-md"
-                  min="1"
-                  max="30"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
-              <textarea
-                value={newProposal.description}
-                onChange={(e) => setNewProposal({...newProposal, description: e.target.value})}
-                className="w-full p-2 border rounded-md h-24"
-                placeholder="Enter proposal description"
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleCreateProposal}
-                disabled={!newProposal.title || !newProposal.description}
-                className="bg-primary hover:bg-primary/90"
-              >
-                Create Proposal
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Tabs for Create and Vote */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8">
+            <TabsTrigger value="voting" className="flex items-center">
+              <Vote className="h-4 w-4 mr-2" />
+              Vote
+            </TabsTrigger>
+            <TabsTrigger value="create" className="flex items-center">
+              <Plus className="h-4 w-4 mr-2" />
+              Create
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Proposals List */}
-        <div className="space-y-6">
-          <h3 className="text-2xl font-bold">Active Proposals</h3>
-          {proposals.map((proposal) => (
+          {/* Voting Tab */}
+          <TabsContent value="voting" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-bold">Active Proposals</h3>
+              <Badge variant="outline" className="flex items-center">
+                <Users className="h-4 w-4 mr-1" />
+                {proposals.length} Proposals
+              </Badge>
+            </div>
+
+            {/* Proposals List */}
+            {proposals.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Vote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">No Active Proposals</h3>
+                  <p className="text-muted-foreground">
+                    No proposals are currently available for voting.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {proposals.map((proposal) => (
             <Card key={proposal.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -372,8 +358,77 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Create Proposal Tab */}
+          <TabsContent value="create" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create New Proposal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Title</label>
+                    <input
+                      type="text"
+                      value={newProposal.title}
+                      onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
+                      className="w-full p-2 border rounded-md"
+                      placeholder="Enter proposal title"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Duration (days)</label>
+                    <input
+                      type="number"
+                      value={newProposal.duration}
+                      onChange={(e) => setNewProposal({...newProposal, duration: parseInt(e.target.value)})}
+                      className="w-full p-2 border rounded-md"
+                      min="1"
+                      max="30"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Description</label>
+                  <textarea
+                    value={newProposal.description}
+                    onChange={(e) => setNewProposal({...newProposal, description: e.target.value})}
+                    className="w-full p-2 border rounded-md h-24"
+                    placeholder="Enter proposal description"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Quorum Threshold</label>
+                  <input
+                    type="number"
+                    value={newProposal.quorumThreshold}
+                    onChange={(e) => setNewProposal({...newProposal, quorumThreshold: parseInt(e.target.value)})}
+                    className="w-full p-2 border rounded-md"
+                    min="1"
+                    placeholder="Minimum votes required"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleCreateProposal}
+                    disabled={!newProposal.title || !newProposal.description}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    Create Proposal
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
