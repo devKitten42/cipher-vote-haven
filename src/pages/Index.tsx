@@ -122,8 +122,12 @@ const Index = () => {
       await createProposal(
         newProposal.title,
         newProposal.description,
-        newProposal.duration * 24 * 60 * 60, // Convert days to seconds
-        newProposal.quorumThreshold
+        newProposal.duration,
+        newProposal.quorumThreshold,
+        newProposal.category,
+        newProposal.priority,
+        newProposal.tags,
+        newProposal.votingOptions
       );
       
       // Reset form with all fields

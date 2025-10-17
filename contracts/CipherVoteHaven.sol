@@ -22,6 +22,11 @@ contract CipherVoteHaven is SepoliaConfig {
         uint256 endTime;
         uint256 quorumThreshold;
         bool resultsRevealed;
+        // 新增字段
+        string category;
+        string priority;
+        string tags;
+        string votingOptions;
     }
     
     struct Vote {
@@ -74,7 +79,11 @@ contract CipherVoteHaven is SepoliaConfig {
         string memory _title,
         string memory _description,
         uint256 _duration,
-        uint256 _quorumThreshold
+        uint256 _quorumThreshold,
+        string memory _category,
+        string memory _priority,
+        string memory _tags,
+        string memory _votingOptions
     ) public returns (uint256) {
         require(bytes(_title).length > 0, "Proposal title cannot be empty");
         require(_duration > 0, "Duration must be positive");
@@ -96,7 +105,11 @@ contract CipherVoteHaven is SepoliaConfig {
             startTime: block.timestamp,
             endTime: block.timestamp + _duration,
             quorumThreshold: _quorumThreshold,
-            resultsRevealed: false
+            resultsRevealed: false,
+            category: _category,
+            priority: _priority,
+            tags: _tags,
+            votingOptions: _votingOptions
         });
         
         // Set ACL permissions for encrypted vote counts
@@ -220,7 +233,11 @@ contract CipherVoteHaven is SepoliaConfig {
         uint256 startTime,
         uint256 endTime,
         uint256 quorumThreshold,
-        bool resultsRevealed
+        bool resultsRevealed,
+        string memory category,
+        string memory priority,
+        string memory tags,
+        string memory votingOptions
     ) {
         Proposal storage proposal = proposals[proposalId];
         return (
@@ -232,7 +249,11 @@ contract CipherVoteHaven is SepoliaConfig {
             proposal.startTime,
             proposal.endTime,
             proposal.quorumThreshold,
-            proposal.resultsRevealed
+            proposal.resultsRevealed,
+            proposal.category,
+            proposal.priority,
+            proposal.tags,
+            proposal.votingOptions
         );
     }
     

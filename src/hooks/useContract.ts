@@ -20,6 +20,11 @@ export interface Proposal {
   startTime: number;
   endTime: number;
   quorumThreshold: number;
+  resultsRevealed: boolean;
+  category: string;
+  priority: string;
+  tags: string;
+  votingOptions: string;
 }
 
 export const useContract = () => {
@@ -36,7 +41,11 @@ export const useContract = () => {
     title: string,
     description: string,
     duration: number,
-    quorumThreshold: number
+    quorumThreshold: number,
+    category: string = "governance",
+    priority: string = "medium",
+    tags: string = "",
+    votingOptions: string = "yes_no_abstain"
   ) => {
     if (!isConnected) throw new Error('Wallet not connected');
     
@@ -50,7 +59,11 @@ export const useContract = () => {
         title,
         description,
         BigInt(durationInSeconds),
-        BigInt(quorumThreshold)
+        BigInt(quorumThreshold),
+        category,
+        priority,
+        tags,
+        votingOptions
       ],
     });
   };
@@ -155,8 +168,12 @@ export const useProposal = (proposalId: number) => {
     startTime,
     endTime,
     quorumThreshold,
-    resultsRevealed
-  ] = data as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean];
+    resultsRevealed,
+    category,
+    priority,
+    tags,
+    votingOptions
+  ] = data as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean, string, string, string, string];
 
   const proposal: Proposal = {
     id: proposalId.toString(),
@@ -173,6 +190,10 @@ export const useProposal = (proposalId: number) => {
     endTime: Number(endTime),
     quorumThreshold: Number(quorumThreshold),
     resultsRevealed,
+    category,
+    priority,
+    tags,
+    votingOptions
   };
 
   return {
@@ -256,7 +277,7 @@ export const useAllProposals = () => {
             });
 
             if (proposalData) {
-              const [title, description, isActive, isEnded, proposer, startTime, endTime, quorumThreshold, resultsRevealed] = proposalData as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean];
+              const [title, description, isActive, isEnded, proposer, startTime, endTime, quorumThreshold, resultsRevealed, category, priority, tags, votingOptions] = proposalData as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean, string, string, string, string];
               
               loadedProposals.push({
                 id: i.toString(),
@@ -269,6 +290,10 @@ export const useAllProposals = () => {
                 isActive: Boolean(isActive),
                 isEnded: Boolean(isEnded),
                 resultsRevealed: Boolean(resultsRevealed),
+                category,
+                priority,
+                tags,
+                votingOptions,
                 yesVotes: 0,
                 noVotes: 0,
                 abstainVotes: 0,
