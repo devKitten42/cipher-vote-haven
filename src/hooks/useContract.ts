@@ -263,7 +263,8 @@ export const useAllProposals = () => {
         for (let i = 0; i < proposalCount; i++) {
           try {
             // Use direct RPC call to read contract data
-            const response = await fetch('https://1rpc.io/sepolia', {
+            const rpcUrl = import.meta.env.VITE_NEXT_PUBLIC_RPC_URL || 'https://1rpc.io/sepolia';
+            const response = await fetch(rpcUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
