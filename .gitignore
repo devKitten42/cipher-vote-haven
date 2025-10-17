@@ -19,10 +19,11 @@ dist-ssr
 .env.test.local
 .env.production.local
 
-# API keys and secrets
-*.key
-*.pem
-secrets/
+# Hardhat files
+cache
+artifacts
+typechain-types
+deployment-info.json
 
 # Editor directories and files
 .vscode/*
@@ -34,3 +35,9 @@ secrets/
 *.njsproj
 *.sln
 *.sw?
+
+# Private keys and sensitive data
+*.pem
+*.key
+private-keys/
+secrets/

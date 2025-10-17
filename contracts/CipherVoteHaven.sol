@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
-import { euint32, externalEuint32, euint8, ebool, FHE } from "@fhevm/solidity/lib/FHE.sol";
+import { euint32, externalEuint32, euint8, externalEuint8, ebool, FHE } from "@fhevm/solidity/lib/FHE.sol";
 
 contract CipherVoteHaven is SepoliaConfig {
     using FHE for *;
     
     struct Proposal {
-        euint32 proposalId;
+        uint256 proposalId;
         string title;
         string description;
         euint32 yesVotes;
@@ -21,10 +21,11 @@ contract CipherVoteHaven is SepoliaConfig {
         uint256 startTime;
         uint256 endTime;
         uint256 quorumThreshold;
+        bool resultsRevealed;
     }
     
     struct Vote {
-        euint32 voteId;
+        uint256 voteId;
         euint8 voteChoice; // 1 = Yes, 2 = No, 3 = Abstain
         address voter;
         uint256 timestamp;
@@ -52,6 +53,7 @@ contract CipherVoteHaven is SepoliaConfig {
     event ProposalEnded(uint256 indexed proposalId, bool quorumReached);
     event VoterRegistered(address indexed voter, bool isVerified);
     event ReputationUpdated(address indexed voter, uint32 reputation);
+    event ResultsRevealed(uint256 indexed proposalId);
     
     constructor(address _verifier) {
         owner = msg.sender;
@@ -81,7 +83,7 @@ contract CipherVoteHaven is SepoliaConfig {
         uint256 proposalId = proposalCounter++;
         
         proposals[proposalId] = Proposal({
-            proposalId: FHE.asEuint32(0), // Will be set properly later
+            proposalId: proposalId,
             title: _title,
             description: _description,
             yesVotes: FHE.asEuint32(0),
@@ -93,8 +95,15 @@ contract CipherVoteHaven is SepoliaConfig {
             proposer: msg.sender,
             startTime: block.timestamp,
             endTime: block.timestamp + _duration,
-            quorumThreshold: _quorumThreshold
+            quorumThreshold: _quorumThreshold,
+            resultsRevealed: false
         });
+        
+        // Set ACL permissions for encrypted vote counts
+        FHE.allowThis(proposals[proposalId].yesVotes);
+        FHE.allowThis(proposals[proposalId].noVotes);
+        FHE.allowThis(proposals[proposalId].abstainVotes);
+        FHE.allowThis(proposals[proposalId].totalVotes);
         
         emit ProposalCreated(proposalId, msg.sender, _title);
         return proposalId;
@@ -117,13 +126,17 @@ contract CipherVoteHaven is SepoliaConfig {
         euint8 internalVoteChoice = FHE.fromExternal(voteChoice, inputProof);
         
         votes[voteId] = Vote({
-            voteId: FHE.asEuint32(0), // Will be set properly later
+            voteId: voteId,
             voteChoice: internalVoteChoice,
             voter: msg.sender,
             timestamp: block.timestamp
         });
         
-        // Update proposal vote counts based on choice
+        // Set ACL permissions for the vote
+        FHE.allowThis(internalVoteChoice);
+        FHE.allow(internalVoteChoice, msg.sender);
+        
+        // Update proposal vote counts based on choice using FHE operations
         euint8 yesChoice = FHE.asEuint8(1);
         euint8 noChoice = FHE.asEuint8(2);
         euint8 abstainChoice = FHE.asEuint8(3);
@@ -133,11 +146,17 @@ contract CipherVoteHaven is SepoliaConfig {
         ebool isNo = FHE.eq(internalVoteChoice, noChoice);
         ebool isAbstain = FHE.eq(internalVoteChoice, abstainChoice);
         
-        // Update vote counts (this is a simplified version - in practice you'd need more complex FHE operations)
+        // Update vote counts using FHE operations
         proposals[proposalId].yesVotes = FHE.add(proposals[proposalId].yesVotes, FHE.select(isYes, FHE.asEuint32(1), FHE.asEuint32(0)));
         proposals[proposalId].noVotes = FHE.add(proposals[proposalId].noVotes, FHE.select(isNo, FHE.asEuint32(1), FHE.asEuint32(0)));
         proposals[proposalId].abstainVotes = FHE.add(proposals[proposalId].abstainVotes, FHE.select(isAbstain, FHE.asEuint32(1), FHE.asEuint32(0)));
         proposals[proposalId].totalVotes = FHE.add(proposals[proposalId].totalVotes, FHE.asEuint32(1));
+        
+        // Update ACL permissions for the updated vote counts
+        FHE.allowThis(proposals[proposalId].yesVotes);
+        FHE.allowThis(proposals[proposalId].noVotes);
+        FHE.allowThis(proposals[proposalId].abstainVotes);
+        FHE.allowThis(proposals[proposalId].totalVotes);
         
         hasVotedOnProposal[msg.sender][proposalId] = true;
         
@@ -157,6 +176,18 @@ contract CipherVoteHaven is SepoliaConfig {
         bool quorumReached = true; // Placeholder - actual quorum check would be done off-chain
         
         emit ProposalEnded(proposalId, quorumReached);
+    }
+    
+    function revealResults(uint256 proposalId) public {
+        require(proposals[proposalId].proposer != address(0), "Proposal does not exist");
+        require(proposals[proposalId].isEnded, "Proposal not ended");
+        require(!proposals[proposalId].resultsRevealed, "Results already revealed");
+        
+        // Allow all voters to decrypt the results
+        // This would typically be done through a relayer or off-chain service
+        proposals[proposalId].resultsRevealed = true;
+        
+        emit ResultsRevealed(proposalId);
     }
     
     function registerVoter(address voter, bool isVerified) public onlyVerifier {
@@ -183,42 +214,51 @@ contract CipherVoteHaven is SepoliaConfig {
     function getProposalInfo(uint256 proposalId) public view returns (
         string memory title,
         string memory description,
-        uint8 yesVotes,
-        uint8 noVotes,
-        uint8 abstainVotes,
-        uint8 totalVotes,
         bool isActive,
         bool isEnded,
         address proposer,
         uint256 startTime,
         uint256 endTime,
-        uint256 quorumThreshold
+        uint256 quorumThreshold,
+        bool resultsRevealed
     ) {
         Proposal storage proposal = proposals[proposalId];
         return (
             proposal.title,
             proposal.description,
-            0, // FHE.decrypt(proposal.yesVotes) - will be decrypted off-chain
-            0, // FHE.decrypt(proposal.noVotes) - will be decrypted off-chain
-            0, // FHE.decrypt(proposal.abstainVotes) - will be decrypted off-chain
-            0, // FHE.decrypt(proposal.totalVotes) - will be decrypted off-chain
             proposal.isActive,
             proposal.isEnded,
             proposal.proposer,
             proposal.startTime,
             proposal.endTime,
-            proposal.quorumThreshold
+            proposal.quorumThreshold,
+            proposal.resultsRevealed
+        );
+    }
+    
+    function getProposalVoteCounts(uint256 proposalId) public view returns (
+        bytes32 yesVotesHandle,
+        bytes32 noVotesHandle,
+        bytes32 abstainVotesHandle,
+        bytes32 totalVotesHandle
+    ) {
+        Proposal storage proposal = proposals[proposalId];
+        return (
+            FHE.toBytes32(proposal.yesVotes),
+            FHE.toBytes32(proposal.noVotes),
+            FHE.toBytes32(proposal.abstainVotes),
+            FHE.toBytes32(proposal.totalVotes)
         );
     }
     
     function getVoteInfo(uint256 voteId) public view returns (
-        uint8 voteChoice,
+        bytes32 voteChoiceHandle,
         address voter,
         uint256 timestamp
     ) {
         Vote storage vote = votes[voteId];
         return (
-            0, // FHE.decrypt(vote.voteChoice) - will be decrypted off-chain
+            FHE.toBytes32(vote.voteChoice),
             vote.voter,
             vote.timestamp
         );
@@ -226,13 +266,13 @@ contract CipherVoteHaven is SepoliaConfig {
     
     function getVoterInfo(address voter) public view returns (
         bool hasVoted,
-        uint8 reputation,
+        bytes32 reputationHandle,
         bool isVerified
     ) {
         VoterInfo storage voterInfo = voters[voter];
         return (
             voterInfo.hasVoted,
-            0, // FHE.decrypt(voterInfo.reputation) - will be decrypted off-chain
+            FHE.toBytes32(voterInfo.reputation),
             voterInfo.isVerified
         );
     }

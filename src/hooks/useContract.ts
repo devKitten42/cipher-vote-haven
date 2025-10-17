@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract';
-import { FHEVoteEncryption } from '@/lib/fhe-encryption';
+import { useZamaInstance } from './useZamaInstance';
+import { useEthersSigner } from './useEthersSigner';
+import { encryptVoteData, decryptVoteData } from '../lib/fhe-utils';
+import { CONTRACT_ADDRESS } from '../config/contracts';
+import { CONTRACT_ABI } from '../lib/contract';
 
 export interface Proposal {
   id: string;
@@ -24,6 +28,8 @@ export const useContract = () => {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
+  const { instance } = useZamaInstance();
+  const signerPromise = useEthersSigner();
 
   // Create a new proposal
   const createProposal = async (
@@ -51,21 +57,32 @@ export const useContract = () => {
 
   // Cast a vote with FHE encryption
   const castVote = async (proposalId: number, voteChoice: number) => {
-    if (!isConnected) throw new Error('Wallet not connected');
+    if (!isConnected || !address) throw new Error('Wallet not connected');
+    if (!instance) throw new Error('FHE instance not ready');
     
-    // Encrypt the vote using FHE
-    const { encryptedBytes, proofBytes } = await FHEVoteEncryption.encryptVoteToBytes(voteChoice);
-    
-    return writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: CONTRACT_ABI,
-      functionName: 'castVote',
-      args: [
-        BigInt(proposalId),
-        encryptedBytes,
-        proofBytes
-      ],
-    });
+    try {
+      // Encrypt the vote using FHE
+      const { handles, inputProof } = await encryptVoteData(
+        instance,
+        CONTRACT_ADDRESS,
+        address,
+        { voteChoice }
+      );
+      
+      return writeContract({
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        abi: CONTRACT_ABI,
+        functionName: 'castVote',
+        args: [
+          BigInt(proposalId),
+          handles[0] as `0x${string}`,
+          inputProof as `0x${string}`
+        ],
+      });
+    } catch (error) {
+      console.error('FHE encryption failed:', error);
+      throw new Error('Failed to encrypt vote. Please try again.');
+    }
   };
 
   // Register a voter
@@ -132,26 +149,23 @@ export const useProposal = (proposalId: number) => {
   const [
     title,
     description,
-    yesVotes,
-    noVotes,
-    abstainVotes,
-    totalVotes,
     isActive,
     isEnded,
     proposer,
     startTime,
     endTime,
-    quorumThreshold
-  ] = data as [string, string, number, number, number, number, boolean, boolean, string, bigint, bigint, bigint];
+    quorumThreshold,
+    resultsRevealed
+  ] = data as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean];
 
   const proposal: Proposal = {
     id: proposalId.toString(),
     title,
     description,
-    yesVotes,
-    noVotes,
-    abstainVotes,
-    totalVotes,
+    yesVotes: 0, // Will be decrypted separately
+    noVotes: 0, // Will be decrypted separately
+    abstainVotes: 0, // Will be decrypted separately
+    totalVotes: 0, // Will be decrypted separately
     isActive,
     isEnded,
     proposer,
@@ -199,6 +213,75 @@ export const useProposalCount = () => {
   return {
     count: data ? Number(data) : 0,
     isLoading,
+    error,
+  };
+};
+
+// Hook for decrypting vote counts
+export const useDecryptVoteCounts = (proposalId: number) => {
+  const { address } = useAccount();
+  const [voteCounts, setVoteCounts] = useState<{
+    yesVotes: number;
+    noVotes: number;
+    abstainVotes: number;
+    totalVotes: number;
+  } | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const decryptVoteCounts = async (instance: any, signer: any) => {
+    if (!address) return;
+    
+    setIsDecrypting(true);
+    setError(null);
+    
+    try {
+      const counts = await decryptVoteData(
+        instance,
+        [proposalId], // This would need to be the actual encrypted handles
+        CONTRACT_ADDRESS,
+        address,
+        signer
+      );
+      setVoteCounts(counts);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setIsDecrypting(false);
+    }
+  };
+
+  return {
+    voteCounts,
+    isDecrypting,
+    error,
+    decryptVoteCounts,
+  };
+};
+
+
+// Hook for revealing results
+export const useRevealResults = () => {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const revealResults = async (proposalId: number) => {
+    return writeContract({
+      address: CONTRACT_ADDRESS as `0x${string}`,
+      abi: CONTRACT_ABI,
+      functionName: 'revealResults',
+      args: [BigInt(proposalId)],
+    });
+  };
+
+  return {
+    revealResults,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
     error,
   };
 };

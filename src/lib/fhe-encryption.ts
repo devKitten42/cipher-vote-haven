@@ -1,11 +1,9 @@
 // FHE Encryption utilities for private voting
-import { keccak256 } from 'viem';
+import { createInstance, initSDK, SepoliaConfig } from '@zama-fhe/relayer-sdk/bundle';
 
 export interface EncryptedVote {
-  encrypted: string;
-  proof: string;
-  commitment: string;
-  publicKey: string;
+  handles: string[];
+  inputProof: string;
 }
 
 export interface VoteProof {
@@ -16,173 +14,138 @@ export interface VoteProof {
 }
 
 export class FHEVoteEncryption {
-  private static readonly ENCRYPTION_VERSION = '1.0.0';
+  private static instance: any = null;
   
   /**
-   * Encrypt a vote choice using FHE simulation
-   * In a real implementation, this would use actual FHE libraries
+   * Initialize FHE SDK
    */
-  static async encryptVote(voteChoice: number): Promise<EncryptedVote> {
+  static async initialize(): Promise<void> {
+    try {
+      await initSDK();
+      this.instance = await createInstance(SepoliaConfig);
+    } catch (error) {
+      console.error('FHE initialization failed:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get FHE instance
+   */
+  static getInstance(): any {
+    if (!this.instance) {
+      throw new Error('FHE not initialized. Call initialize() first.');
+    }
+    return this.instance;
+  }
+  
+  /**
+   * Encrypt a vote choice using real FHE
+   */
+  static async encryptVote(voteChoice: number, contractAddress: string, userAddress: string): Promise<EncryptedVote> {
     // Validate vote choice
     if (voteChoice < 1 || voteChoice > 3) {
       throw new Error('Invalid vote choice. Must be 1 (Yes), 2 (No), or 3 (Abstain)');
     }
     
-    // Generate random nonce for encryption
-    const nonce = this.generateNonce();
-    const timestamp = Date.now();
+    if (!this.instance) {
+      await this.initialize();
+    }
     
-    // Simulate FHE encryption
-    const voteData = {
-      vote: voteChoice,
-      nonce,
-      timestamp,
-      version: this.ENCRYPTION_VERSION
-    };
-    
-    // Create encrypted payload (simulated FHE encryption)
-    const encrypted = this.simulateFHEEncryption(voteData);
-    
-    // Generate zero-knowledge proof
-    const proof = await this.generateVoteProof(voteChoice, nonce, timestamp);
-    
-    // Create commitment hash
-    const commitment = this.createCommitment(encrypted, proof);
-    
-    return {
-      encrypted,
-      proof: JSON.stringify(proof),
-      commitment,
-      publicKey: this.getPublicKey()
-    };
-  }
-  
-  /**
-   * Decrypt a vote (for result revelation)
-   * In a real implementation, this would use FHE decryption
-   */
-  static async decryptVote(encrypted: string, proof: string): Promise<number> {
     try {
-      const proofData: VoteProof = JSON.parse(proof);
+      // Create encrypted input using FHE instance
+      const input = this.instance.createEncryptedInput(contractAddress, userAddress);
+      input.add8(voteChoice);
       
-      // Verify proof
-      if (!this.verifyVoteProof(encrypted, proofData)) {
-        throw new Error('Invalid vote proof');
-      }
+      const encryptedInput = await input.encrypt();
       
-      // Simulate FHE decryption
-      const decrypted = this.simulateFHEDecryption(encrypted);
-      
-      return decrypted.vote;
+      return {
+        handles: encryptedInput.handles,
+        inputProof: `0x${Array.from(encryptedInput.inputProof)
+          .map(b => b.toString(16).padStart(2, '0')).join('')}`
+      };
     } catch (error) {
-      console.error('Decryption failed:', error);
-      throw new Error('Failed to decrypt vote');
+      console.error('FHE encryption failed:', error);
+      throw error;
     }
   }
   
   /**
-   * Generate a zero-knowledge proof for the vote
+   * Decrypt vote counts for result revelation
    */
-  private static async generateVoteProof(
-    voteChoice: number, 
-    nonce: string, 
-    timestamp: number
-  ): Promise<VoteProof> {
-    // In a real implementation, this would generate actual ZK proofs
-    const commitment = keccak256(
-      new TextEncoder().encode(`${voteChoice}-${nonce}-${timestamp}`)
-    );
+  static async decryptVoteCounts(
+    proposalId: number,
+    contractAddress: string,
+    userAddress: string,
+    signer: any
+  ): Promise<{ yesVotes: number; noVotes: number; abstainVotes: number; totalVotes: number }> {
+    if (!this.instance) {
+      await this.initialize();
+    }
     
-    return {
-      commitment,
-      proof: `zk-proof-${voteChoice}-${nonce}`,
-      publicKey: this.getPublicKey(),
-      timestamp
-    };
-  }
-  
-  /**
-   * Verify a vote proof
-   */
-  private static verifyVoteProof(encrypted: string, proof: VoteProof): boolean {
     try {
-      // In a real implementation, this would verify actual ZK proofs
-      const expectedCommitment = keccak256(
-        new TextEncoder().encode(encrypted + proof.timestamp)
+      // Get encrypted vote counts from contract
+      const contract = new (await import('ethers')).Contract(contractAddress, [], signer);
+      const [yesVotesHandle, noVotesHandle, abstainVotesHandle, totalVotesHandle] = 
+        await contract.getProposalVoteCounts(proposalId);
+      
+      // Create handle pairs for decryption
+      const handlePairs = [
+        { handle: yesVotesHandle, contractAddress },
+        { handle: noVotesHandle, contractAddress },
+        { handle: abstainVotesHandle, contractAddress },
+        { handle: totalVotesHandle, contractAddress }
+      ];
+      
+      // Generate keypair for decryption
+      const keypair = this.instance.generateKeypair();
+      
+      // Create EIP712 signature for decryption
+      const start = Math.floor(Date.now() / 1000).toString();
+      const days = '10';
+      const eip712 = this.instance.createEIP712(keypair.publicKey, [contractAddress], start, days);
+      
+      const signature = await signer.signTypedData(
+        eip712.domain,
+        { UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification },
+        eip712.message
       );
       
-      return proof.commitment === expectedCommitment;
-    } catch {
-      return false;
+      // Decrypt the vote counts
+      const result = await this.instance.userDecrypt(
+        handlePairs,
+        keypair.privateKey,
+        keypair.publicKey,
+        signature.replace('0x', ''),
+        [contractAddress],
+        userAddress,
+        start,
+        days
+      );
+      
+      return {
+        yesVotes: parseInt(result[yesVotesHandle] || '0', 10),
+        noVotes: parseInt(result[noVotesHandle] || '0', 10),
+        abstainVotes: parseInt(result[abstainVotesHandle] || '0', 10),
+        totalVotes: parseInt(result[totalVotesHandle] || '0', 10)
+      };
+    } catch (error) {
+      console.error('FHE decryption failed:', error);
+      throw error;
     }
   }
   
   /**
-   * Create a commitment hash for the encrypted vote
+   * Convert FHE handle to proper format
    */
-  private static createCommitment(encrypted: string, proof: VoteProof): string {
-    const data = encrypted + proof.commitment + proof.timestamp;
-    return keccak256(new TextEncoder().encode(data));
-  }
-  
-  /**
-   * Simulate FHE encryption
-   * In a real implementation, this would use actual FHE libraries
-   */
-  private static simulateFHEEncryption(data: any): string {
-    // Simulate FHE encryption by encoding the data
-    const encoded = btoa(JSON.stringify(data));
-    
-    // Add some randomness to simulate encryption
-    const randomSuffix = Math.random().toString(36).substring(2);
-    
-    return `fhe_${encoded}_${randomSuffix}`;
-  }
-  
-  /**
-   * Simulate FHE decryption
-   * In a real implementation, this would use actual FHE libraries
-   */
-  private static simulateFHEDecryption(encrypted: string): any {
-    // Remove the FHE prefix and random suffix
-    const cleanEncrypted = encrypted.replace(/^fhe_/, '').replace(/_[a-z0-9]+$/, '');
-    
-    // Decode the data
-    return JSON.parse(atob(cleanEncrypted));
-  }
-  
-  /**
-   * Generate a random nonce
-   */
-  private static generateNonce(): string {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-  }
-  
-  /**
-   * Get the public key for encryption
-   * In a real implementation, this would be the actual FHE public key
-   */
-  private static getPublicKey(): string {
-    return 'fhe-public-key-' + this.generateNonce().substring(0, 16);
-  }
-  
-  /**
-   * Convert encrypted vote to bytes for contract call
-   */
-  static encryptVoteToBytes(voteChoice: number): Promise<{ encryptedBytes: Uint8Array; proofBytes: Uint8Array }> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const { encrypted, proof } = await this.encryptVote(voteChoice);
-        
-        const encryptedBytes = new TextEncoder().encode(encrypted);
-        const proofBytes = new TextEncoder().encode(proof);
-        
-        resolve({ encryptedBytes, proofBytes });
-      } catch (error) {
-        reject(error);
-      }
-    });
+  static convertHex(handle: any): string {
+    if (typeof handle === 'string') {
+      return handle.startsWith('0x') ? handle : `0x${handle}`;
+    } else if (handle instanceof Uint8Array) {
+      return `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    } else if (Array.isArray(handle)) {
+      return `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    }
+    return `0x${handle.toString()}`;
   }
 }

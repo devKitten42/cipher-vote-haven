@@ -10,13 +10,13 @@ module.exports = {
       optimizer: {
         enabled: true,
         runs: 200,
-        viaIR: true, // Enable viaIR to avoid "Stack too deep" errors
       },
+      viaIR: true, // Enable viaIR to avoid "Stack too deep" errors
     },
   },
   networks: {
     hardhat: {
-      chainId: 1337,
+      chainId: 31337,
     },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "https://1rpc.io/sepolia",
@@ -25,7 +25,7 @@ module.exports = {
     },
     localhost: {
       url: "http://127.0.0.1:8545",
-      chainId: 1337,
+      chainId: 31337,
     },
   },
   etherscan: {

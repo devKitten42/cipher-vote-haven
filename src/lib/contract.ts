@@ -1,5 +1,5 @@
 // Contract configuration and ABI
-export const CONTRACT_ADDRESS = "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8bC"; // Placeholder address - replace with deployed contract address
+import { CONTRACT_ADDRESS } from '../config/contracts';
 
 export const CONTRACT_ABI = [
   {
@@ -44,13 +44,13 @@ export const CONTRACT_ABI = [
         "type": "uint256"
       },
       {
-        "internalType": "bytes",
-        "name": "encryptedVote",
-        "type": "bytes"
+        "internalType": "bytes32",
+        "name": "voteChoice",
+        "type": "bytes32"
       },
       {
         "internalType": "bytes",
-        "name": "proof",
+        "name": "inputProof",
         "type": "bytes"
       }
     ],
@@ -86,26 +86,6 @@ export const CONTRACT_ABI = [
         "type": "string"
       },
       {
-        "internalType": "uint8",
-        "name": "yesVotes",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint8",
-        "name": "noVotes",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint8",
-        "name": "abstainVotes",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint8",
-        "name": "totalVotes",
-        "type": "uint8"
-      },
-      {
         "internalType": "bool",
         "name": "isActive",
         "type": "bool"
@@ -134,6 +114,45 @@ export const CONTRACT_ABI = [
         "internalType": "uint256",
         "name": "quorumThreshold",
         "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "resultsRevealed",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getProposalVoteCounts",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "yesVotesHandle",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "noVotesHandle",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "abstainVotesHandle",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "totalVotesHandle",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -145,6 +164,11 @@ export const CONTRACT_ABI = [
         "internalType": "address",
         "name": "voter",
         "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "isVerified",
+        "type": "bool"
       }
     ],
     "name": "registerVoter",
@@ -161,6 +185,19 @@ export const CONTRACT_ABI = [
       }
     ],
     "name": "endProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "revealResults",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -204,37 +241,6 @@ export const CONTRACT_ABI = [
   }
 ] as const;
 
-// FHE encryption utilities (simplified for demo)
-export class FHEEncryption {
-  // In a real implementation, this would use actual FHE libraries
-  static async encryptVote(voteChoice: number): Promise<{ encrypted: string; proof: string }> {
-    // Simulate FHE encryption
-    const encrypted = btoa(JSON.stringify({
-      vote: voteChoice,
-      timestamp: Date.now(),
-      nonce: Math.random().toString(36)
-    }));
-    
-    // Simulate zero-knowledge proof
-    const proof = btoa(JSON.stringify({
-      commitment: encrypted,
-      proof: "zk-proof-data",
-      publicKey: "fhe-public-key"
-    }));
-    
-    return { encrypted, proof };
-  }
-  
-  static async decryptVote(encrypted: string): Promise<number> {
-    try {
-      const data = JSON.parse(atob(encrypted));
-      return data.vote;
-    } catch {
-      return 0;
-    }
-  }
-}
-
 // Contract interaction utilities
 export const contractUtils = {
   async createProposal(
@@ -254,14 +260,17 @@ export const contractUtils = {
   
   async castVote(
     proposalId: number,
-    voteChoice: number
+    voteChoice: number,
+    contractAddress: string,
+    userAddress: string
   ) {
-    const { encrypted, proof } = await FHEEncryption.encryptVote(voteChoice);
+    const { FHEVoteEncryption } = await import('./fhe-encryption');
+    const { handles, inputProof } = await FHEVoteEncryption.encryptVote(voteChoice, contractAddress, userAddress);
     
     return {
       proposalId,
-      encryptedVote: encrypted,
-      proof
+      voteChoice: handles[0],
+      inputProof
     };
   }
 };
