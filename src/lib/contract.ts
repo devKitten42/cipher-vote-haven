@@ -23,6 +23,26 @@ export const CONTRACT_ABI = [
         "internalType": "uint256",
         "name": "_quorumThreshold",
         "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "_category",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_priority",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_tags",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_votingOptions",
+        "type": "string"
       }
     ],
     "name": "createProposal",
