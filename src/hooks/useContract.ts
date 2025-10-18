@@ -249,9 +249,10 @@ export const useProposalCount = () => {
   };
 };
 
-// Hook for loading all proposals from contract
+// Hook for loading all proposals from contract - using publicClient like bloom-chain-secure
 export const useAllProposals = () => {
   const { count: proposalCount } = useProposalCount();
+  const publicClient = usePublicClient();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -267,6 +268,11 @@ export const useAllProposals = () => {
         return;
       }
 
+      if (!publicClient) {
+        console.log('⚠️ Public client not available');
+        return;
+      }
+
       console.log('🔄 Starting to load proposals from contract...');
       setIsLoading(true);
       setError(null);
@@ -274,61 +280,57 @@ export const useAllProposals = () => {
       try {
         const loadedProposals: Proposal[] = [];
         
-        // 使用简单的fetch调用，就像bloom-chain-secure项目一样
+        // 使用publicClient读取合约，就像bloom-chain-secure项目一样
         for (let i = 0; i < proposalCount; i++) {
-          console.log(`🔍 Loading proposal ${i} from contract...`);
+          console.log(`🔍 Loading proposal ${i} from contract using publicClient...`);
           try {
-            // 使用简单的RPC调用
-            const rpcUrl = import.meta.env.VITE_NEXT_PUBLIC_RPC_URL || 'https://1rpc.io/sepolia';
-            
-            const response = await fetch(rpcUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'eth_call',
-                params: [
-                  {
-                    to: CONTRACT_ADDRESS,
-                    data: `0x${'getProposalInfo(uint256)'.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')}${i.toString(16).padStart(64, '0')}`,
-                  },
-                  'latest'
-                ],
-                id: 1
-              })
+            const result = await publicClient.readContract({
+              address: CONTRACT_ADDRESS as `0x${string}`,
+              abi: CONTRACT_ABI,
+              functionName: 'getProposalInfo',
+              args: [BigInt(i)]
             });
 
-            const result = await response.json();
-            console.log(`📊 Proposal ${i} RPC result:`, result);
+            console.log(`📊 Proposal ${i} data from contract:`, result);
             
-            if (result.result && result.result !== '0x') {
-              // 简单创建提案对象，就像bloom-chain-secure项目一样
-              loadedProposals.push({
-                id: i.toString(),
-                title: `Proposal ${i + 1}`,
-                description: `This is proposal ${i + 1} loaded from the contract`,
-                proposer: "0x0000000000000000000000000000000000000000",
-                startTime: Math.floor(Date.now() / 1000),
-                endTime: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60),
-                quorumThreshold: 100,
-                isActive: true,
-                isEnded: false,
-                resultsRevealed: false,
-                category: "governance",
-                priority: "medium",
-                tags: "contract, blockchain",
-                votingOptions: "yes_no_abstain",
-                yesVotes: 0,
-                noVotes: 0,
-                abstainVotes: 0,
-                totalVotes: 0
-              });
-              console.log(`✅ Proposal ${i} loaded successfully`);
-            } else {
-              console.log(`⚠️ Proposal ${i} has no data`);
-            }
+            const [
+              title,
+              description,
+              isActive,
+              isEnded,
+              proposer,
+              startTime,
+              endTime,
+              quorumThreshold,
+              resultsRevealed,
+              category,
+              priority,
+              tags,
+              votingOptions
+            ] = result as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean, string, string, string, string];
+
+            loadedProposals.push({
+              id: i.toString(),
+              title,
+              description,
+              proposer,
+              startTime: Number(startTime),
+              endTime: Number(endTime),
+              quorumThreshold: Number(quorumThreshold),
+              isActive,
+              isEnded,
+              resultsRevealed,
+              category,
+              priority,
+              tags,
+              votingOptions,
+              yesVotes: 0,
+              noVotes: 0,
+              abstainVotes: 0,
+              totalVotes: 0
+            });
+            
+            console.log(`✅ Proposal ${i} loaded successfully from contract`);
           } catch (err) {
             console.error(`❌ Failed to load proposal ${i}:`, err);
           }
@@ -346,7 +348,7 @@ export const useAllProposals = () => {
     };
 
     loadAllProposals();
-  }, [proposalCount]);
+  }, [proposalCount, publicClient]);
 
   return {
     proposals,
