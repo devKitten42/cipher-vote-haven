@@ -29,7 +29,7 @@ export interface Proposal {
 
 export const useContract = () => {
   const { address, isConnected } = useAccount();
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
@@ -51,7 +51,7 @@ export const useContract = () => {
     
     const durationInSeconds = duration * 24 * 60 * 60;
     
-    return writeContract({
+    return writeContractAsync({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'createProposal',
@@ -102,7 +102,7 @@ export const useContract = () => {
         proofLength: args[2].length
       });
       
-      const result = await writeContract({
+      const result = await writeContractAsync({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: CONTRACT_ABI,
         functionName: 'castVote',
@@ -128,7 +128,7 @@ export const useContract = () => {
   const registerVoter = async (voterAddress: string) => {
     if (!isConnected) throw new Error('Wallet not connected');
     
-    return writeContract({
+    return writeContractAsync({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'registerVoter',
@@ -140,7 +140,7 @@ export const useContract = () => {
   const endProposal = async (proposalId: number) => {
     if (!isConnected) throw new Error('Wallet not connected');
     
-    return writeContract({
+    return writeContractAsync({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'endProposal',
@@ -428,13 +428,13 @@ export const useDecryptVoteCounts = (proposalId: number) => {
 
 // Hook for revealing results
 export const useRevealResults = () => {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
 
   const revealResults = async (proposalId: number) => {
-    return writeContract({
+    return writeContractAsync({
       address: CONTRACT_ADDRESS as `0x${string}`,
       abi: CONTRACT_ABI,
       functionName: 'revealResults',
