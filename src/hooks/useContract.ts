@@ -274,75 +274,61 @@ export const useAllProposals = () => {
       try {
         const loadedProposals: Proposal[] = [];
         
-        // Load each proposal from contract using direct RPC calls
+        // 使用wagmi的readContract来获取每个提案的真实数据
+        const { readContract } = await import('wagmi/actions');
+        
         for (let i = 0; i < proposalCount; i++) {
-          console.log(`🔍 Loading proposal ${i} from contract...`);
+          console.log(`🔍 Loading proposal ${i} from contract using wagmi...`);
           try {
-            // Use direct RPC call to get proposal data
-            const rpcUrl = import.meta.env.VITE_NEXT_PUBLIC_RPC_URL || 'https://1rpc.io/sepolia';
-            console.log('🌐 Using RPC URL:', rpcUrl);
-            console.log('📋 Contract address:', CONTRACT_ADDRESS);
-            
-            // Create the function selector for getProposalInfo(uint256)
-            // Function signature: getProposalInfo(uint256)
-            const functionSelector = '0x' + 'getProposalInfo(uint256)'.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-            const paramData = i.toString(16).padStart(64, '0');
-            const data = functionSelector + paramData;
-            
-            console.log(`📡 Calling contract with data: ${data}`);
-            
-            const response = await fetch(rpcUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'eth_call',
-                params: [
-                  {
-                    to: CONTRACT_ADDRESS,
-                    data: data,
-                  },
-                  'latest'
-                ],
-                id: 1
-              })
+            const proposalData = await readContract({
+              address: CONTRACT_ADDRESS,
+              abi: CONTRACT_ABI,
+              functionName: 'getProposalInfo',
+              args: [BigInt(i)],
             });
 
-            console.log(`📡 RPC response for proposal ${i}:`, response.status);
-            const result = await response.json();
-            console.log(`📄 RPC result for proposal ${i}:`, result);
+            console.log(`📊 Proposal ${i} data from contract:`, proposalData);
             
-            if (result.result && result.result !== '0x') {
-              console.log(`✅ Proposal ${i} has data from contract`);
-              // For now, create a basic proposal object with contract data
-              // In a full implementation, you'd decode the ABI response properly
-              loadedProposals.push({
-                id: i.toString(),
-                title: `Contract Proposal ${i + 1}`,
-                description: `This proposal was loaded from the deployed contract at ${CONTRACT_ADDRESS}`,
-                proposer: "0x0000000000000000000000000000000000000000",
-                startTime: Math.floor(Date.now() / 1000),
-                endTime: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60),
-                quorumThreshold: 100,
-                isActive: true,
-                isEnded: false,
-                resultsRevealed: false,
-                category: "governance",
-                priority: "medium",
-                tags: "contract, blockchain",
-                votingOptions: "yes_no_abstain",
-                yesVotes: 0,
-                noVotes: 0,
-                abstainVotes: 0,
-                totalVotes: 0
-              });
-            } else {
-              console.log(`⚠️ Proposal ${i} has no data or empty result`);
-            }
+            const [
+              title,
+              description,
+              isActive,
+              isEnded,
+              proposer,
+              startTime,
+              endTime,
+              quorumThreshold,
+              resultsRevealed,
+              category,
+              priority,
+              tags,
+              votingOptions
+            ] = proposalData as [string, string, boolean, boolean, string, bigint, bigint, bigint, boolean, string, string, string, string];
+
+            loadedProposals.push({
+              id: i.toString(),
+              title,
+              description,
+              proposer,
+              startTime: Number(startTime),
+              endTime: Number(endTime),
+              quorumThreshold: Number(quorumThreshold),
+              isActive,
+              isEnded,
+              resultsRevealed,
+              category,
+              priority,
+              tags,
+              votingOptions,
+              yesVotes: 0, // 这些需要单独解密
+              noVotes: 0,
+              abstainVotes: 0,
+              totalVotes: 0
+            });
+            
+            console.log(`✅ Proposal ${i} loaded successfully from contract`);
           } catch (err) {
-            console.error(`❌ Failed to load proposal ${i}:`, err);
+            console.error(`❌ Failed to load proposal ${i} from contract:`, err);
           }
         }
         
