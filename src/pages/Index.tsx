@@ -211,7 +211,23 @@ const Index = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-primary" />
+              <div className="relative">
+                {/* Voting Box Logo */}
+                <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center relative overflow-hidden">
+                  {/* Voting box base */}
+                  <div className="w-6 h-4 bg-white/20 rounded-sm border border-white/30"></div>
+                  {/* Vote slips coming out */}
+                  <div className="absolute -top-1 -right-1 w-2 h-3 bg-white/40 rounded-sm transform rotate-12"></div>
+                  <div className="absolute -top-0.5 -right-2 w-1.5 h-2.5 bg-white/30 rounded-sm transform rotate-6"></div>
+                  {/* Lock icon overlay */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-white/60 rounded-full flex items-center justify-center">
+                    <div className="w-1 h-1 bg-primary rounded-full"></div>
+                  </div>
+                </div>
+                {/* Encryption sparkles */}
+                <div className="absolute -top-1 -left-1 w-1 h-1 bg-yellow-400 rounded-full animate-pulse"></div>
+                <div className="absolute -bottom-1 -right-1 w-0.5 h-0.5 bg-blue-400 rounded-full animate-pulse delay-300"></div>
+              </div>
               <h1 className="text-2xl font-bold">Cipher Vote Haven</h1>
             </div>
             <div className="flex items-center space-x-4">
