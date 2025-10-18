@@ -34,6 +34,7 @@ const Index = () => {
     createProposal, 
     castVote, 
     registerVoter, 
+    registerSelf,
     endProposal
   } = useContract();
   
@@ -47,6 +48,8 @@ const Index = () => {
   const [isVoting, setIsVoting] = useState(false);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptedResults, setDecryptedResults] = useState<any>(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [newProposal, setNewProposal] = useState({
     title: "",
     description: "",
@@ -59,9 +62,43 @@ const Index = () => {
   });
   const [activeTab, setActiveTab] = useState("voting");
 
+  const handleRegister = async () => {
+    if (!isConnected || !address) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    setIsRegistering(true);
+    try {
+      console.log('🔄 Registering user as voter...');
+      
+      const txResult = await registerSelf();
+      console.log('✅ Registration successful:', txResult);
+      
+      setIsRegistered(true);
+      alert("Successfully registered as voter! You can now vote on proposals.");
+      
+    } catch (error) {
+      console.error("Registration failed:", error);
+      if (error.message?.includes('Already registered')) {
+        setIsRegistered(true);
+        alert("You are already registered as a voter.");
+      } else {
+        alert(`Failed to register: ${error.message || 'Please try again.'}`);
+      }
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const handleVote = async (proposalId: number, choice: number) => {
     if (!isConnected || !address) {
       alert("Please connect your wallet first");
+      return;
+    }
+
+    if (!isRegistered) {
+      alert("Please register as a voter first before voting.");
       return;
     }
 
@@ -91,7 +128,11 @@ const Index = () => {
       
     } catch (error) {
       console.error("Voting failed:", error);
-      alert(`Failed to cast vote: ${error.message || 'Please try again.'}`);
+      if (error.message?.includes('Voter not verified')) {
+        alert("You need to register as a voter first. Please click the 'Register as Voter' button.");
+      } else {
+        alert(`Failed to cast vote: ${error.message || 'Please try again.'}`);
+      }
     } finally {
       setIsVoting(false);
     }
@@ -218,6 +259,49 @@ const Index = () => {
 
           {/* Voting Tab */}
           <TabsContent value="voting" className="space-y-6">
+            {/* Registration Status */}
+            {isConnected && (
+              <Card className="mb-6">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Shield className="h-5 w-5 text-primary" />
+                      <div>
+                        <h4 className="font-medium">Voter Registration</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {isRegistered ? "You are registered and can vote" : "Register to participate in voting"}
+                        </p>
+                      </div>
+                    </div>
+                    {!isRegistered ? (
+                      <Button 
+                        onClick={handleRegister}
+                        disabled={isRegistering}
+                        className="flex items-center"
+                      >
+                        {isRegistering ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Registering...
+                          </>
+                        ) : (
+                          <>
+                            <Users className="h-4 w-4 mr-2" />
+                            Register as Voter
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="text-green-600">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Registered
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-bold">Active Proposals</h3>
               <Badge variant="outline" className="flex items-center">
@@ -306,10 +390,10 @@ const Index = () => {
                         </Button>
                         <Button
                           onClick={() => handleVote(parseInt(proposal.id), voteChoices[proposal.id] || 0)}
-                          disabled={!voteChoices[proposal.id] || isVoting}
+                          disabled={!voteChoices[proposal.id] || isVoting || !isRegistered}
                           className="bg-primary hover:bg-primary/90"
                         >
-                          {isVoting ? "Encrypting..." : "Cast Vote"}
+                          {!isRegistered ? "Register First" : isVoting ? "Encrypting..." : "Cast Vote"}
                         </Button>
                       </div>
                     </div>

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
-import { euint32, externalEuint32, euint8, externalEuint8, ebool, FHE } from "@fhevm/solidity/lib/FHE.sol";
+import { euint32, externalEuint32, ebool, FHE } from "@fhevm/solidity/lib/FHE.sol";
 
 contract CipherVoteHaven is SepoliaConfig {
     using FHE for *;
@@ -31,7 +31,7 @@ contract CipherVoteHaven is SepoliaConfig {
     
     struct Vote {
         uint256 voteId;
-        euint8 voteChoice; // 1 = Yes, 2 = No, 3 = Abstain
+        euint32 voteChoice; // 1 = Yes, 2 = No, 3 = Abstain
         address voter;
         uint256 timestamp;
     }
@@ -124,7 +124,7 @@ contract CipherVoteHaven is SepoliaConfig {
     
     function castVote(
         uint256 proposalId,
-        externalEuint8 voteChoice,
+        externalEuint32 voteChoice,
         bytes calldata inputProof
     ) public returns (uint256) {
         require(proposals[proposalId].proposer != address(0), "Proposal does not exist");
@@ -135,8 +135,8 @@ contract CipherVoteHaven is SepoliaConfig {
         
         uint256 voteId = voteCounter++;
         
-        // Convert externalEuint8 to euint8 using FHE.fromExternal
-        euint8 internalVoteChoice = FHE.fromExternal(voteChoice, inputProof);
+        // Convert externalEuint32 to euint32 using FHE.fromExternal
+        euint32 internalVoteChoice = FHE.fromExternal(voteChoice, inputProof);
         
         votes[voteId] = Vote({
             voteId: voteId,
@@ -150,9 +150,9 @@ contract CipherVoteHaven is SepoliaConfig {
         FHE.allow(internalVoteChoice, msg.sender);
         
         // Update proposal vote counts based on choice using FHE operations
-        euint8 yesChoice = FHE.asEuint8(1);
-        euint8 noChoice = FHE.asEuint8(2);
-        euint8 abstainChoice = FHE.asEuint8(3);
+        euint32 yesChoice = FHE.asEuint32(1);
+        euint32 noChoice = FHE.asEuint32(2);
+        euint32 abstainChoice = FHE.asEuint32(3);
         
         // Use FHE conditional operations to update vote counts
         ebool isYes = FHE.eq(internalVoteChoice, yesChoice);
@@ -213,6 +213,19 @@ contract CipherVoteHaven is SepoliaConfig {
         });
         
         emit VoterRegistered(voter, isVerified);
+    }
+    
+    // Allow anyone to register themselves as a voter
+    function registerSelf() public {
+        require(voters[msg.sender].isVerified == false, "Already registered");
+        
+        voters[msg.sender] = VoterInfo({
+            hasVoted: false,
+            reputation: FHE.asEuint32(100), // Default reputation
+            isVerified: true
+        });
+        
+        emit VoterRegistered(msg.sender, true);
     }
     
     function updateVoterReputation(address voter, euint32 reputation) public onlyVerifier {

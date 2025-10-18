@@ -68,7 +68,29 @@ export const useContract = () => {
     });
   };
 
-  // Cast a vote with FHE encryption
+  // Register user as voter if not already registered
+  const registerSelf = async () => {
+    if (!isConnected || !address) throw new Error('Wallet not connected');
+    
+    try {
+      console.log('🔄 Registering user as voter...');
+      
+      const result = await writeContractAsync({
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        abi: CONTRACT_ABI,
+        functionName: 'registerSelf',
+        args: []
+      });
+      
+      console.log('✅ User registered as voter:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to register as voter:', error);
+      throw error;
+    }
+  };
+
+  // Cast a vote with FHE encryption (requires user to be registered first)
   const castVote = async (proposalId: number, voteChoice: number) => {
     if (!isConnected || !address) throw new Error('Wallet not connected');
     if (!instance) throw new Error('FHE instance not ready');

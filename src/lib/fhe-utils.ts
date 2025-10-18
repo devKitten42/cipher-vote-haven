@@ -86,23 +86,23 @@ export async function encryptVoteData(
     
     console.log('🔄 Step 2: Adding encrypted data...');
     
-    // Validate all values are within 8-bit range for vote choice
-    const max8Bit = 255; // 2^8 - 1
+    // Validate all values are within 32-bit range (following bloom-chain-secure pattern)
+    const max32Bit = 4294967295; // 2^32 - 1
     
     if (data.voteChoice !== undefined) {
       console.log('📊 Adding vote choice:', data.voteChoice);
-      if (data.voteChoice > max8Bit) {
-        throw new Error(`Vote choice ${data.voteChoice} exceeds 8-bit limit`);
+      if (data.voteChoice > max32Bit) {
+        throw new Error(`Vote choice ${data.voteChoice} exceeds 32-bit limit`);
       }
-      input.add8(data.voteChoice);
+      input.add32(BigInt(data.voteChoice));
     }
     
     if (data.reputation !== undefined) {
       console.log('📊 Adding reputation:', data.reputation);
-      if (data.reputation > max8Bit) {
-        throw new Error(`Reputation ${data.reputation} exceeds 8-bit limit`);
+      if (data.reputation > max32Bit) {
+        throw new Error(`Reputation ${data.reputation} exceeds 32-bit limit`);
       }
-      input.add8(data.reputation);
+      input.add32(BigInt(data.reputation));
     }
     
     console.log('✅ Step 2 completed: All data added to encrypted input');
