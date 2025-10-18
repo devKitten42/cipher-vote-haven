@@ -43,7 +43,7 @@ const Index = () => {
   const { proposals, isLoading: isLoadingProposals, error: proposalsError } = useAllProposals();
 
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
-  const [voteChoice, setVoteChoice] = useState<number>(0);
+  const [voteChoices, setVoteChoices] = useState<Record<string, number>>({});
   const [isVoting, setIsVoting] = useState(false);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptedResults, setDecryptedResults] = useState<any>(null);
@@ -263,8 +263,8 @@ const Index = () => {
                       <h4 className="font-medium">Cast Your Vote (Encrypted)</h4>
                       <div className="flex space-x-2">
                         <Button
-                          variant={voteChoice === 1 ? "default" : "outline"}
-                          onClick={() => setVoteChoice(1)}
+                          variant={voteChoices[proposal.id] === 1 ? "default" : "outline"}
+                          onClick={() => setVoteChoices(prev => ({ ...prev, [proposal.id]: 1 }))}
                           disabled={isVoting}
                           className="flex items-center"
                         >
@@ -272,8 +272,8 @@ const Index = () => {
                           Yes
                         </Button>
                         <Button
-                          variant={voteChoice === 2 ? "default" : "outline"}
-                          onClick={() => setVoteChoice(2)}
+                          variant={voteChoices[proposal.id] === 2 ? "default" : "outline"}
+                          onClick={() => setVoteChoices(prev => ({ ...prev, [proposal.id]: 2 }))}
                           disabled={isVoting}
                           className="flex items-center"
                         >
@@ -281,8 +281,8 @@ const Index = () => {
                           No
                         </Button>
                         <Button
-                          variant={voteChoice === 3 ? "default" : "outline"}
-                          onClick={() => setVoteChoice(3)}
+                          variant={voteChoices[proposal.id] === 3 ? "default" : "outline"}
+                          onClick={() => setVoteChoices(prev => ({ ...prev, [proposal.id]: 3 }))}
                           disabled={isVoting}
                           className="flex items-center"
                         >
@@ -290,8 +290,8 @@ const Index = () => {
                           Abstain
                         </Button>
                         <Button
-                          onClick={() => handleVote(parseInt(proposal.id), voteChoice)}
-                          disabled={voteChoice === 0 || isVoting}
+                          onClick={() => handleVote(parseInt(proposal.id), voteChoices[proposal.id] || 0)}
+                          disabled={!voteChoices[proposal.id] || isVoting}
                           className="bg-primary hover:bg-primary/90"
                         >
                           {isVoting ? "Encrypting..." : "Cast Vote"}
