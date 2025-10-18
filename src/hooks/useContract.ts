@@ -276,11 +276,14 @@ export const useAllProposals = () => {
         
         // 使用wagmi的readContract来获取每个提案的真实数据
         const { readContract } = await import('wagmi/actions');
+        const { getConfig } = await import('wagmi');
+        
+        const config = getConfig();
         
         for (let i = 0; i < proposalCount; i++) {
           console.log(`🔍 Loading proposal ${i} from contract using wagmi...`);
           try {
-            const proposalData = await readContract({
+            const proposalData = await readContract(config, {
               address: CONTRACT_ADDRESS,
               abi: CONTRACT_ABI,
               functionName: 'getProposalInfo',
