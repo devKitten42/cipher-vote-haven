@@ -274,36 +274,55 @@ export const useAllProposals = () => {
       try {
         const loadedProposals: Proposal[] = [];
         
-        // Load each proposal from contract using individual useReadContract calls
-        for (let i = 0; i < proposalCount; i++) {
-          console.log(`🔍 Loading proposal ${i} from contract...`);
-          try {
-            // Create a simple proposal object for now
-            // In a real implementation, you'd need to make individual RPC calls
-            loadedProposals.push({
-              id: i.toString(),
-              title: `Proposal ${i + 1}`,
-              description: `This is proposal ${i + 1} loaded from the contract`,
-              proposer: "0x0000000000000000000000000000000000000000",
-              startTime: Math.floor(Date.now() / 1000),
-              endTime: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60),
-              quorumThreshold: 100,
-              isActive: true,
-              isEnded: false,
-              resultsRevealed: false,
-              category: "governance",
-              priority: "medium",
-              tags: "contract, blockchain",
-              votingOptions: "yes_no_abstain",
-              yesVotes: 0,
-              noVotes: 0,
-              abstainVotes: 0,
-              totalVotes: 0
-            });
-            console.log(`✅ Proposal ${i} created`);
-          } catch (err) {
-            console.error(`❌ Failed to load proposal ${i}:`, err);
+        // For now, let's create demo proposals that match the deployment script
+        const demoProposals = [
+          {
+            title: "Increase Development Fund Allocation",
+            description: "Proposal to allocate an additional 500,000 tokens to the development fund for Q2 2024 roadmap execution and ecosystem growth initiatives.",
+            category: "treasury",
+            priority: "high",
+            tags: "funding, development, roadmap",
+            votingOptions: "yes_no_abstain",
+            quorumThreshold: 100,
+            duration: 7
+          },
+          {
+            title: "Implement Quarterly Governance Reviews", 
+            description: "Establish regular governance review sessions to assess DAO performance, member engagement, and process improvements.",
+            category: "governance",
+            priority: "medium",
+            tags: "governance, process, review",
+            votingOptions: "yes_no_abstain",
+            quorumThreshold: 150,
+            duration: 10
           }
+        ];
+        
+        for (let i = 0; i < Math.min(proposalCount, demoProposals.length); i++) {
+          console.log(`🔍 Creating proposal ${i} from demo data...`);
+          const demo = demoProposals[i];
+          
+          loadedProposals.push({
+            id: i.toString(),
+            title: demo.title,
+            description: demo.description,
+            proposer: "0x0000000000000000000000000000000000000000",
+            startTime: Math.floor(Date.now() / 1000),
+            endTime: Math.floor(Date.now() / 1000) + (demo.duration * 24 * 60 * 60),
+            quorumThreshold: demo.quorumThreshold,
+            isActive: true,
+            isEnded: false,
+            resultsRevealed: false,
+            category: demo.category,
+            priority: demo.priority,
+            tags: demo.tags,
+            votingOptions: demo.votingOptions,
+            yesVotes: 0,
+            noVotes: 0,
+            abstainVotes: 0,
+            totalVotes: 0
+          });
+          console.log(`✅ Proposal ${i} created with demo data`);
         }
         
         console.log(`📊 Total loaded proposals: ${loadedProposals.length}`);
