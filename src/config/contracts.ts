@@ -1,7 +1,7 @@
 // Contract configuration file - centralized management of all contract addresses
 export const CONTRACT_CONFIG = {
   // Main contract address
-  CIPHER_VOTE_HAVEN: "0xD8ebFf60302CA7f440124Cc14cFb8e1e3DCd09A6",
+  CIPHER_VOTE_HAVEN: "0x6e7Bfa8004021c7B17b34C9c82429CD26Fa4eb37",
   
   // Network configuration
   NETWORK: {

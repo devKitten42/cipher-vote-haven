@@ -63,66 +63,6 @@ async function main() {
       priority: "medium",
       tags: "governance, process, review",
       votingOptions: "yes_no_abstain"
-    },
-    {
-      title: "Update Treasury Management Strategy",
-      description: "Modernize treasury allocation strategy to include DeFi yield farming and risk diversification across multiple protocols.",
-      duration: 5 * 24 * 60 * 60, // 5 days in seconds
-      quorumThreshold: 200,
-      category: "treasury",
-      priority: "high",
-      tags: "treasury, defi, yield farming",
-      votingOptions: "yes_no_abstain"
-    },
-    {
-      title: "Community Staking Rewards Program",
-      description: "Launch a new staking rewards program with 15% APY for community members who stake their tokens for 6+ months.",
-      duration: 14 * 24 * 60 * 60, // 14 days in seconds
-      quorumThreshold: 300,
-      category: "community",
-      priority: "medium",
-      tags: "staking, rewards, community",
-      votingOptions: "yes_no_abstain"
-    },
-    {
-      title: "Partnership with Major DeFi Protocol",
-      description: "Form strategic partnership with leading DeFi protocol to integrate cross-chain functionality and increase TVL.",
-      duration: 21 * 24 * 60 * 60, // 21 days in seconds
-      quorumThreshold: 500,
-      category: "partnership",
-      priority: "high",
-      tags: "partnership, defi, cross-chain",
-      votingOptions: "yes_no_abstain"
-    },
-    {
-      title: "Technical Upgrade: Layer 2 Integration",
-      description: "Implement Layer 2 scaling solution to reduce transaction costs and improve user experience for all governance operations.",
-      duration: 30 * 24 * 60 * 60, // 30 days in seconds
-      quorumThreshold: 750,
-      category: "technical",
-      priority: "high",
-      tags: "technical, layer2, scaling",
-      votingOptions: "yes_no_abstain"
-    },
-    {
-      title: "Environmental Sustainability Initiative",
-      description: "Allocate 2% of treasury funds to carbon offset programs and renewable energy investments to support environmental sustainability.",
-      duration: 12 * 24 * 60 * 60, // 12 days in seconds
-      quorumThreshold: 250,
-      category: "community",
-      priority: "medium",
-      tags: "sustainability, environment, treasury",
-      votingOptions: "yes_no_abstain"
-    },
-    {
-      title: "Emergency Response Fund",
-      description: "Create emergency response fund with 1M tokens to handle unexpected market conditions and provide community support during crises.",
-      duration: 3 * 24 * 60 * 60, // 3 days in seconds
-      quorumThreshold: 1000,
-      category: "treasury",
-      priority: "urgent",
-      tags: "emergency, fund, crisis",
-      votingOptions: "yes_no_abstain"
     }
   ];
   
