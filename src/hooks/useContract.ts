@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { useZamaInstance } from './useZamaInstance';
 import { useEthersSigner } from './useEthersSigner';
 import { encryptVoteData, decryptVoteData } from '../lib/fhe-utils';
@@ -280,7 +280,7 @@ export const useAllProposals = () => {
       try {
         const loadedProposals: Proposal[] = [];
         
-        // 使用publicClient读取合约，就像bloom-chain-secure项目一样
+        // Use publicClient to read contract data, similar to bloom-chain-secure project
         for (let i = 0; i < proposalCount; i++) {
           console.log(`🔍 Loading proposal ${i} from contract using publicClient...`);
           try {
