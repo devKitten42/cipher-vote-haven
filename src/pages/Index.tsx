@@ -446,7 +446,7 @@ const Index = () => {
                     <div>Quorum Threshold: {proposal.quorumThreshold} votes</div>
                     <div>
                       {proposal.isActive 
-                        ? `Ends in ${Math.ceil((proposal.endTime - Date.now()) / (1000 * 60 * 60 * 24))} days`
+                        ? `Ends in ${Math.ceil((Number(proposal.endTime) * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days`
                         : "Voting ended"
                       }
                     </div>
