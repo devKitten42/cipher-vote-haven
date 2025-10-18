@@ -74,6 +74,8 @@ export const useContract = () => {
     if (!instance) throw new Error('FHE instance not ready');
     
     try {
+      console.log('🚀 Starting FHE vote encryption...', { proposalId, voteChoice, address, contractAddress: CONTRACT_ADDRESS });
+      
       // Encrypt the vote using FHE
       const { handles, inputProof } = await encryptVoteData(
         instance,
@@ -82,19 +84,43 @@ export const useContract = () => {
         { voteChoice }
       );
       
-      return writeContract({
+      console.log('✅ FHE encryption completed', { 
+        handlesCount: handles.length, 
+        proofLength: inputProof.length,
+        firstHandle: handles[0]?.substring(0, 10) + '...'
+      });
+      
+      const args = [
+        BigInt(proposalId),
+        handles[0] as `0x${string}`,
+        inputProof as `0x${string}`
+      ];
+      
+      console.log('📊 Contract call arguments:', {
+        proposalId: args[0].toString(),
+        voteChoice: args[1].substring(0, 10) + '...',
+        proofLength: args[2].length
+      });
+      
+      const result = await writeContract({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: CONTRACT_ABI,
         functionName: 'castVote',
-        args: [
-          BigInt(proposalId),
-          handles[0] as `0x${string}`,
-          inputProof as `0x${string}`
-        ],
+        args
       });
+      
+      console.log('✅ Contract call submitted:', result);
+      return result;
     } catch (error) {
-      console.error('FHE encryption failed:', error);
-      throw new Error('Failed to encrypt vote. Please try again.');
+      console.error('❌ FHE encryption or contract call failed:', error);
+      console.error('📊 Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        proposalId,
+        voteChoice
+      });
+      throw new Error(`Failed to cast vote: ${error.message || 'Please try again.'}`);
     }
   };
 

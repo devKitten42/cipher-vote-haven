@@ -30,23 +30,36 @@ export function formatFHEError(error: unknown): string {
 // Convert FHE handle to proper hex format (32 bytes)
 export function convertHex(handle: any): string {
   let hex = '';
-  if (handle instanceof Uint8Array) {
-    hex = `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-  } else if (typeof handle === 'string') {
-    hex = handle.startsWith('0x') ? handle : `0x${handle}`;
-  } else if (Array.isArray(handle)) {
-    hex = `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
-  } else {
-    hex = `0x${handle.toString()}`;
-  }
   
-  // Ensure exactly 32 bytes (66 characters including 0x)
-  if (hex.length < 66) {
-    hex = hex.padEnd(66, '0');
-  } else if (hex.length > 66) {
-    hex = hex.substring(0, 66);
+  try {
+    if (handle instanceof Uint8Array) {
+      hex = `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    } else if (typeof handle === 'string') {
+      hex = handle.startsWith('0x') ? handle : `0x${handle}`;
+    } else if (Array.isArray(handle)) {
+      hex = `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    } else if (handle && typeof handle === 'object' && handle.data) {
+      // Handle FHE SDK object format
+      hex = `0x${Array.from(handle.data).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    } else {
+      hex = `0x${handle.toString()}`;
+    }
+    
+    // Ensure exactly 32 bytes (66 characters including 0x)
+    if (hex.length < 66) {
+      hex = hex.padEnd(66, '0');
+    } else if (hex.length > 66) {
+      hex = hex.substring(0, 66);
+    }
+    
+    console.log('🔧 Converted hex:', hex.substring(0, 10) + '...', 'Length:', hex.length);
+    return hex;
+  } catch (error) {
+    console.error('❌ Error converting hex:', error);
+    console.log('📊 Handle type:', typeof handle);
+    console.log('📊 Handle value:', handle);
+    throw new Error(`Failed to convert handle to hex: ${error.message}`);
   }
-  return hex;
 }
 
 // FHE encryption helper for vote operations

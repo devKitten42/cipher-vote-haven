@@ -72,11 +72,26 @@ const Index = () => {
 
     setIsVoting(true);
     try {
-      await castVote(proposalId, choice);
-      alert("Vote cast successfully! Your vote is encrypted and private.");
+      console.log('🚀 Starting vote process...', { proposalId, choice });
+      
+      // Cast vote and wait for transaction
+      const txResult = await castVote(proposalId, choice);
+      console.log('📊 Vote transaction submitted:', txResult);
+      
+      // Wait for transaction confirmation
+      if (txResult && typeof txResult === 'object' && 'hash' in txResult) {
+        console.log('⏳ Waiting for transaction confirmation...');
+        // The transaction is submitted, wait for user to confirm in wallet
+        alert("Please confirm the transaction in your wallet. Your vote will be encrypted and private once confirmed.");
+      } else {
+        // If it's a promise or different format, handle accordingly
+        console.log('📊 Vote transaction result:', txResult);
+        alert("Vote submitted! Please confirm in your wallet.");
+      }
+      
     } catch (error) {
       console.error("Voting failed:", error);
-      alert("Failed to cast vote. Please try again.");
+      alert(`Failed to cast vote: ${error.message || 'Please try again.'}`);
     } finally {
       setIsVoting(false);
     }
