@@ -15,6 +15,8 @@
 
 > **Watch the full demo**: Experience encrypted voting in action with our comprehensive walkthrough
 
+**📁 Local Demo Video**: [cipher-vote-demo.mp4](./cipher-vote-demo.mp4) (15MB, High Quality)
+
 ## 🌟 What Makes Us Different?
 
 Unlike traditional voting systems, **Cipher Vote Haven** revolutionizes governance through:
