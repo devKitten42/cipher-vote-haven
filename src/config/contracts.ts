@@ -1,7 +1,7 @@
 // 合约配置文件 - 统一管理所有合约地址
 export const CONTRACT_CONFIG = {
   // 主合约地址
-  CIPHER_VOTE_HAVEN: "0xEEe311EC331f10edfca033b233A823612Db1CA03",
+  CIPHER_VOTE_HAVEN: "0xD8ebFf60302CA7f440124Cc14cFb8e1e3DCd09A6",
   
   // 网络配置
   NETWORK: {

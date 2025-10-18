@@ -274,55 +274,76 @@ export const useAllProposals = () => {
       try {
         const loadedProposals: Proposal[] = [];
         
-        // For now, let's create demo proposals that match the deployment script
-        const demoProposals = [
-          {
-            title: "Increase Development Fund Allocation",
-            description: "Proposal to allocate an additional 500,000 tokens to the development fund for Q2 2024 roadmap execution and ecosystem growth initiatives.",
-            category: "treasury",
-            priority: "high",
-            tags: "funding, development, roadmap",
-            votingOptions: "yes_no_abstain",
-            quorumThreshold: 100,
-            duration: 7
-          },
-          {
-            title: "Implement Quarterly Governance Reviews", 
-            description: "Establish regular governance review sessions to assess DAO performance, member engagement, and process improvements.",
-            category: "governance",
-            priority: "medium",
-            tags: "governance, process, review",
-            votingOptions: "yes_no_abstain",
-            quorumThreshold: 150,
-            duration: 10
+        // Load each proposal from contract using direct RPC calls
+        for (let i = 0; i < proposalCount; i++) {
+          console.log(`🔍 Loading proposal ${i} from contract...`);
+          try {
+            // Use direct RPC call to get proposal data
+            const rpcUrl = import.meta.env.VITE_NEXT_PUBLIC_RPC_URL || 'https://1rpc.io/sepolia';
+            console.log('🌐 Using RPC URL:', rpcUrl);
+            console.log('📋 Contract address:', CONTRACT_ADDRESS);
+            
+            // Create the function selector for getProposalInfo(uint256)
+            // Function signature: getProposalInfo(uint256)
+            const functionSelector = '0x' + 'getProposalInfo(uint256)'.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+            const paramData = i.toString(16).padStart(64, '0');
+            const data = functionSelector + paramData;
+            
+            console.log(`📡 Calling contract with data: ${data}`);
+            
+            const response = await fetch(rpcUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_call',
+                params: [
+                  {
+                    to: CONTRACT_ADDRESS,
+                    data: data,
+                  },
+                  'latest'
+                ],
+                id: 1
+              })
+            });
+
+            console.log(`📡 RPC response for proposal ${i}:`, response.status);
+            const result = await response.json();
+            console.log(`📄 RPC result for proposal ${i}:`, result);
+            
+            if (result.result && result.result !== '0x') {
+              console.log(`✅ Proposal ${i} has data from contract`);
+              // For now, create a basic proposal object with contract data
+              // In a full implementation, you'd decode the ABI response properly
+              loadedProposals.push({
+                id: i.toString(),
+                title: `Contract Proposal ${i + 1}`,
+                description: `This proposal was loaded from the deployed contract at ${CONTRACT_ADDRESS}`,
+                proposer: "0x0000000000000000000000000000000000000000",
+                startTime: Math.floor(Date.now() / 1000),
+                endTime: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60),
+                quorumThreshold: 100,
+                isActive: true,
+                isEnded: false,
+                resultsRevealed: false,
+                category: "governance",
+                priority: "medium",
+                tags: "contract, blockchain",
+                votingOptions: "yes_no_abstain",
+                yesVotes: 0,
+                noVotes: 0,
+                abstainVotes: 0,
+                totalVotes: 0
+              });
+            } else {
+              console.log(`⚠️ Proposal ${i} has no data or empty result`);
+            }
+          } catch (err) {
+            console.error(`❌ Failed to load proposal ${i}:`, err);
           }
-        ];
-        
-        for (let i = 0; i < Math.min(proposalCount, demoProposals.length); i++) {
-          console.log(`🔍 Creating proposal ${i} from demo data...`);
-          const demo = demoProposals[i];
-          
-          loadedProposals.push({
-            id: i.toString(),
-            title: demo.title,
-            description: demo.description,
-            proposer: "0x0000000000000000000000000000000000000000",
-            startTime: Math.floor(Date.now() / 1000),
-            endTime: Math.floor(Date.now() / 1000) + (demo.duration * 24 * 60 * 60),
-            quorumThreshold: demo.quorumThreshold,
-            isActive: true,
-            isEnded: false,
-            resultsRevealed: false,
-            category: demo.category,
-            priority: demo.priority,
-            tags: demo.tags,
-            votingOptions: demo.votingOptions,
-            yesVotes: 0,
-            noVotes: 0,
-            abstainVotes: 0,
-            totalVotes: 0
-          });
-          console.log(`✅ Proposal ${i} created with demo data`);
         }
         
         console.log(`📊 Total loaded proposals: ${loadedProposals.length}`);
