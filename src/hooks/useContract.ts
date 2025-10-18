@@ -175,6 +175,7 @@ export const useContract = () => {
     createProposal,
     castVote,
     registerVoter,
+    registerSelf,
     endProposal,
     
     // Transaction state
